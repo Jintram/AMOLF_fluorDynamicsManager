@@ -2,7 +2,7 @@
 % Notes;
 %
 % see 
-% \\storage01\data\AMOLF\users\wehrens\ZZ_EXPERIMENTAL_DATA\MICROSCOPE_EXPERIMENTS_MORE_LINKS\CRP_plasmid_data
+% \\storage01\data\AMOLF\users\wehrens\ZZ_EXPERIMENTAL_DATA\MICROSCOPE_EXPERIMENTS_shortcuts\CRP_plasmid_data
 % also for a .docx file with a list of plasmid data.
 
 
@@ -26,6 +26,18 @@
 % Generally, analyzed data will be stored in .mat files (or otherwise), 
 % preferably in the directory with the data.
 % Overview plots will be stored in an output directory.
+% DATA STRUCTURE
+% ===
+% Experimental datasets are stored in folders that are labeled with the
+% date the experiment has taken place, plus an additional description
+% string (the "date" folder.
+% Each experiment has different subfolders, where positions that were
+% observed under the microscope are stored. Each analysis is performed on
+% these "sub"experiments. Each of these sub experiments also has its own
+% Excel configuration file, which allow Matlab to process the data. These
+% configuration files are stored in the experimental date folder.
+% The experimental folders are organized in "base" directories, that are
+% organized per year.
 %
 % ANALYSIS === 
 % Optimally, the script, when ran, would loop over all datasets and check
@@ -45,14 +57,16 @@
 % ===
 % basedir
 teststringp1  = 'F:\EXPERIMENTAL_DATA_2014-2015_m1\';
-% config file path
-teststringp2  ='2015-06-12_CRP_asc852-853_plasmids\pos1crop\configFileMadeLater_2015-06-12_pos1.xlsx'
+% experimental data and analysis file path
+teststringp2  ='2015-06-12_CRP_asc852-853_plasmids\pos1crop\'
+% configfile file name (should be located in date dir)
+teststringp3 = 'configFileMadeLater_2015-06-12_pos1.xlsx'
 % ID to recognize dataset
-teststringp3 = 'CRP_plasmids_WT_rCRP'; 
-
+teststringp4 = 'CRP_plasmids_WT_rCRP'; 
+    
 % Now convert to usable data
 % ===
-fullpathstringposition  =[teststringp1 teststringp2];
+fullexperimentalpath  =[teststringp1 teststringp2];
 
 %if ~(fullpathstringposition(end)=='\') 
 %    fullpathstringposition(end+1)='\';
@@ -62,18 +76,18 @@ fullpathstringposition  =[teststringp1 teststringp2];
 % conventions.
 % ===
 % Examine the full path
-slashLocations = strfind(fullpathstringposition,'\');
+slashLocations = strfind(fullexperimentalpath,'\');
 % Get date movie + name of experiment (referred to as movieDate)
-movieDate = fullpathstringposition(slashLocations(end-2)+1:slashLocations(end-1)-1)
+movieDate = fullexperimentalpath(slashLocations(end-2)+1:slashLocations(end-1)-1)
 % Get the date by itself
 theMovieDateOnly   = movieDate(1:10)
 % Get the position name 
-movieName = fullpathstringposition(slashLocations(end-1)+1:slashLocations(end)-1)
+movieName = fullexperimentalpath(slashLocations(end-1)+1:slashLocations(end)-1)
 
 % Get the full path to the experiment ('date dir')
-dateDir = fullpathstringposition(1:slashLocations(end-1))
+dateDir = fullexperimentalpath(1:slashLocations(end-1))
 % Get the config file name
-configfilename           = fullpathstringposition(slashLocations(end)+1:end)
+configfilename           = teststringp3;
 
 analysisDataPath        = [dateDir 'fluorDynamicsManager_Data_' theMovieDateOnly '_' movieName '.mat'];
 
