@@ -87,7 +87,7 @@ for dirIdx = 1:numel(experimentalDirList)
                posDirName = experimentalDirContents(ii).name;
 
                positionStruct(count).baseDir = baseDir;
-               positionStruct(count).fullExperimentalDir =  [experimentalDir posDirName];
+               positionStruct(count).fullExperimentalDir =  [experimentalDir posDirName '\'];
 
                % It's hard to automatically identify whether this folder has a fully analyzed dataset, so this will have to be done manually..                 
 
@@ -97,7 +97,7 @@ for dirIdx = 1:numel(experimentalDirList)
     end
 end
 
-%% Create csv list
+%% Create tab delimited list (can be pasted to Excel)
 
 disp('*** OUTPUT ***');
 for ii = 1:numel(positionStruct)
