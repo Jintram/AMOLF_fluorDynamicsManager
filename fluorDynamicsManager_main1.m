@@ -92,10 +92,28 @@ fourcolors=linspecer(4);
 morecolors=linspecer(10);
 
 IDENTIFIERSTOPLOT = {...
-    {'WT_plasmids_pbla-CRP_pCRP-GFP_asc852'}};
+    {'WT_plasmids_pbla-CRP_pCRP-GFP_asc852'},...
+    {'WT_plasmids_pbla-CRP_ps70-GFP_asc853'}};
 COLORSWITHIDENTIFIERS = {...
-    fourcolors(1,:)};
+    fourcolors(1,:),...
+    fourcolors(1,:),};
 
+CUSTOMLIMITSPERPARAMGROUP = {...
+    [NaN NaN    NaN NaN],...
+    [0,  6e4    NaN NaN],...
+    [NaN NaN    NaN NaN]...
+    };
+    % {[xlim(1) xlim(2) ylim(1) ylim(2)], ...}
+
+CUSTOMLIMITSPERPARAMGROUPCCS= {...
+    [-10 10    -.25 .25],...
+    [NaN NaN    NaN NaN],...
+    [NaN NaN    NaN NaN],...
+    [NaN NaN    NaN NaN],...
+    [NaN NaN    NaN NaN],...
+    [NaN NaN    NaN NaN]...
+    };
+    
 %% Show some colors
 %{
 figure; hold on;
@@ -105,6 +123,7 @@ end
 %}
 
 %% Running analyses if necessary
+% TODO: maybe remove this section to a separate script file?
 
 % Run over datafiles to run analysis if this is necessary
 for dataIdx= 1:nrDataLines
@@ -179,7 +198,39 @@ for plotGroupIdx = 1:numel(IDENTIFIERSTOPLOT)
 end
 
 
-%% Now go and fetch all the corresponding filepaths
+%% Now go and fetch all the corresponding filepaths, first for single params
+figurePaths = {};
+paramIdx = 2;
+
+for groupIdx = 1:numel(applicableIndices)
+    for plotIdx = 1:numel(applicableIndices{groupIdx}) 
+        
+       
+        %% 
+        
+        % Set appropriate index
+        dataIdx =  applicableIndices{groupIdx}(plotIdx);
+        
+        % Load configuration file and pre-process dataset info
+        fluorDynamicsManager_sub_PreprocessDatasetInfo
+        
+        % determine which fields are of interest
+        fluorDynamicsManager_sub_GetInterestingFieldsForThisDataSet
+            % i.e. get parameterOfInterestList
+        
+        % Get the path                
+        figFilename = ['FIG_PDF_' parameterOfInterestList{paramIdx} '.fig'];
+        completeFigurePath = [theDirectoryWithThePlots figFilename];
+               
+        % Organize this into the figure list
+        figurePaths{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;
+        
+    end
+end
+
+plotType = 'SingleParameter';
+
+%% The same can be done for cross-correlations
 figurePaths = {};
 paramIdx = 1;
 
@@ -197,9 +248,10 @@ for groupIdx = 1:numel(applicableIndices)
         
         % determine which fields are of interest
         fluorDynamicsManager_sub_GetInterestingFieldsForThisDataSet
+            % i.e. get parameterOfInterestList
         
         % Get the path                
-        figFilename = ['FIG_PDF_' parameterOfInterestList{paramIdx} '.fig'];
+        figFilename = ['FIG_crosscorrs_' parameterOfInterestDoubleCombinatorialList{paramIdx} '.fig'];
         completeFigurePath = [theDirectoryWithThePlots figFilename];
                
         % Organize this into the figure list
@@ -208,34 +260,7 @@ for groupIdx = 1:numel(applicableIndices)
     end
 end
 
-
-%%
-
-% Then gather the data that corresponds to each of those lines
-for dataIdx= applicableIndices
-    
-    %% skip if empty    
-    if isempty(allXLSdata{dataIdx,1}) | isnan(allXLSdata{dataIdx,1})
-        continue
-    end
-    
-    %% Load configuration file and pre-process dataset info
-    fluorDynamicsManager_sub_PreprocessDatasetInfo        
-        % some parameters that are determined are:
-        % ourSettings, dateDir, theMovieDateOnly, movieName, dataFileName
-    
-    %% Then perform some plotting
-    paramName = parameterOfInterestList{1};
-    
-    XXXX
-    
-    % Now continue here with determining the path of the plot that we're looking for.. 
-    
-    XXXX
-    
-        
-end
-
+plotType = 'CC';
 %% Then place the figures neatly tiled into a figure
 
 % Determine the size of our subplot figure first
@@ -244,21 +269,95 @@ totalNrPanels = sum(nrPanels);
 xNrPanels = min(ceil(sqrt(totalNrPanels)), max(nrPanels));
 yNrPanels = sum(ceil(nrPanels./xNrPanels));
 
-testFigure='F:\EXPERIMENTAL_DATA_2014-2015_m1\2015-06-12_CRP_asc852-853_plasmids\2015-06-12_pos1crop_CRP_plasmids_WT_rCRP_asc852\FIG_PDF_G6_mean_cycCor_readableLabels.fig'
-h1 = openfig(testFigure,'reuse');
-ax1 = gca;
-fig1 = get(ax1,'children');
+% Determine (y) size of figure
+theHeight = min(yNrPanels*4.8, 19.2);
 
-h1=figure(); clf; hold on;
-MW_makeplotlookbetter(8,[],[12.8 19.2]./2,1);
+% Make figure
+if exist('h1','var'), if ishandle(h1), close(h1), end, end % close if handle already existed
+h1=figure(); clf; hold on; % make new
+MW_makeplotlookbetter(8,[],[12.8 theHeight]./2,1); 
 
-for i=1:10
+% Necessary later
+groupLabels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-    s1=subplot(yNrPanels,xNrPanels,i);
-    %set(gca,'YTickLabel',[]); %set(gca,'XTickLabel',[]); 
-    copyobj(fig1,s1);
+%
+paramIdx=1;
+panelLine=0;
+panelNr=0;
+for groupIdx = 1:numel(applicableIndices)
+    panelLine=panelLine+1;
+    panelColumn=0;
+    for plotIdx = 1:numel(applicableIndices{groupIdx}) 
+
+        %%
+        
+        % Determine which panel to use
+        panelColumn=panelColumn+1;
+        if panelColumn>xNrPanels
+            panelColumn=0; panelLine=panelLine+1;
+        end
+        panelNr=(panelLine-1)*xNrPanels+panelColumn
+
+        % Get the path for the current figure
+        currentFigure = figurePaths{paramIdx}{groupIdx}{plotIdx};
+
+        % Load and get handle for current figure
+        hCurrentFig = openfig(currentFigure);
+        set(0,'CurrentFigure',hCurrentFig);
+        set(hCurrentFig,'Visible','off');
+        ax1 = gca;
+        fig1 = get(ax1,'children');
+
+        % Switch to figure with multiple panels
+        set(0,'CurrentFigure',h1);
+        s1=subplot(yNrPanels,xNrPanels,panelNr);        
+        copyobj(fig1,s1);
+        
+        % Turn of axes ticks if desired
+        %set(gca,'YTickLabel',[]); %set(gca,'XTickLabel',[]); 
+        
+        % give a title if it is the first of a group
+        if plotIdx==1
+            t=title(groupLabels(groupIdx));
+            set(t, 'horizontalAlignment', 'left');
+            set(t, 'units', 'normalized');
+            t1 = get(t, 'position');
+            set(t, 'position', [0 t1(2) t1(3)]);
+        end
+        
+        % Set limits to axes if desired
+        if strcmp(plotType,'SingleParameter')
+            if ~any(isnan(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(1:2)))
+                xlim(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(1:2));
+            end
+            if ~any(isnan(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(3:4)))
+                ylim(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(3:4));
+            end
+        elseif strcmp(plotType,'CC')
+            if ~any(isnan(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(1:2)))
+                xlim(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(1:2));
+            end
+            if ~any(isnan(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(3:4)))
+                ylim(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(3:4));
+            end
+        end
+        
+    end
     
 end
+
+figure(h1);
+
+% Also give overview of the different conditions:
+disp(['===' 10 'FIGURE LEGEND']);
+for idIdx = 1:size(IDENTIFIERSTOPLOT,2)
+    if strcmp(plotType,'SingleParameter')
+        disp([groupLabels(idIdx) ': ' IDENTIFIERSTOPLOT{idIdx}{:} ', ' parameterOfInterestList{paramIdx}]); 
+    elseif strcmp(plotType,'CC')
+        disp([groupLabels(idIdx) ': ' IDENTIFIERSTOPLOT{idIdx}{:} ', ' parameterOfInterestDoubleCombinatorialList{paramIdx}]); 
+    end
+end
+disp('===');
 
 %% 
 
