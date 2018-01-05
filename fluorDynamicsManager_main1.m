@@ -49,84 +49,233 @@
 %
 % 
 
+%% Load Excel file to get information on directories
 
+[ndata, text, allXLSdata] = xlsread('\\storage01\data\AMOLF\users\wehrens\ZZ_EXPERIMENTAL_DATA\MICROSCOPE_OVERVIEW_AND_FIGURES\_projectfile_CRP.xlsx','dataset_list','B16:E200')
+nrDataLines=size(allXLSdata,1);
 
-%% How to convert directory to information necessary to run cross-correlation etc script
+%% Define which datasets should be plotted together and how
 
-% This will be read from master excel sheet later
-% ===
-% basedir
-teststringp1  = 'F:\EXPERIMENTAL_DATA_2014-2015_m1\';
-% experimental data and analysis file path
-teststringp2  ='2015-06-12_CRP_asc852-853_plasmids\pos1crop\'
-% configfile file name (should be located in date dir)
-teststringp3 = 'configFileMadeLater_2015-06-12_pos1.xlsx'
-% ID to recognize dataset
-teststringp4 = 'CRP_plasmids_WT_rCRP'; 
-    
-% Now convert to usable data
-% ===
-fullexperimentalpath  =[teststringp1 teststringp2];
+% The plasmid datasets
+% { {identifier1}, {identifier2, identifier3}, .. }
+% The cells within the cells allow for synonyms, e.g.
+% {identifier2,identifier3} will be considered as if they were the
+% same identifier.
+IDENTIFIERSTOPLOT = {...
+    {'WT_plasmids_pbla-CRP_pCRP-GFP_asc852'}, ...
+    {'WT_plasmids_pbla-CRP_ps70-GFP_asc853'}, ...
+    {'dCRP_plasmids_pbla-CRP_pCRP-GFP_asc854'}, ...
+    {'dCRP_plasmids_pbla-CRP_ps70-GFP_asc855'}, ...
+    {'WT_plasmids_ps70-GFP_asc841'}, ...
+    {'WT_plasmids_pCRP-GFP_asc842'}, ...    
+    ...{'dcAMP_plasmids-extracell800-pCRP-GFP_asc893','dcAMP-extracell800-pCRP-GFP_asc894'},...
+    ...{'dcAMP_plasmids-extracell800-ps70-GFP_asc941'},...
+    ...
+    };
+% Now also define the colors for these plots
+fourcolors=linspecer(4);
+morecolors=linspecer(10);
+COLORSWITHIDENTIFIERS = {...
+    fourcolors(1,:), ... {'WT_plasmids_pbla-CRP_pCRP-GFP_asc852'}, ...
+    fourcolors(1,:), ... {'WT_plasmids_pbla-CRP_ps70-GFP_asc853'}, ...
+    fourcolors(2,:), ... {'dCRP_plasmids_pbla-CRP_pCRP-GFP_asc854'}, ...
+    fourcolors(2,:), ... {'dCRP_plasmids_pbla-CRP_ps70-GFP_asc855'}, ...
+    fourcolors(1,:), ... {'WT_plasmids_ps70-GFP_asc841'}, ...
+    fourcolors(1,:), ... {'WT_plasmids_pCRP-GFP_asc842'}, ...    
+    ...fourcolors(2,:), ... {'dcAMP-extracell800-pCRP-GFP_asc893','dcAMP-extracell800-pCRP-GFP_asc894'},...
+    ...fourcolors(2,:), ... {'dcAMP-extracell800-ps70-GFP_asc941'},...
+    ...
+};
 
-%if ~(fullpathstringposition(end)=='\') 
-%    fullpathstringposition(end+1)='\';
-%end
+%% Test dataset
+fourcolors=linspecer(4);
+morecolors=linspecer(10);
 
-% Extract information from the path, note that this relies on some
-% conventions.
-% ===
-% Examine the full path
-slashLocations = strfind(fullexperimentalpath,'\');
-% Get date movie + name of experiment (referred to as movieDate)
-movieDate = fullexperimentalpath(slashLocations(end-2)+1:slashLocations(end-1)-1)
-% Get the date by itself
-theMovieDateOnly   = movieDate(1:10)
-% Get the position name 
-movieName = fullexperimentalpath(slashLocations(end-1)+1:slashLocations(end)-1)
+IDENTIFIERSTOPLOT = {...
+    {'WT_plasmids_pbla-CRP_pCRP-GFP_asc852'}};
+COLORSWITHIDENTIFIERS = {...
+    fourcolors(1,:)};
 
-% Get the full path to the experiment ('date dir')
-dateDir = fullexperimentalpath(1:slashLocations(end-1))
-% Get the config file name
-configfilename           = teststringp3;
-
-analysisDataPath        = [dateDir 'fluorDynamicsManager_Data_' theMovieDateOnly '_' movieName '.mat'];
-
-%% Set up ourSettings struct required to run analysis
-
-% Clear ourSettings and other config variables
-clear -global settings ourSettings p
-
-% Set up minimal set of variables in ourSettings struct
-ourSettings.mypathname=         dateDir;
-ourSettings.myconfigfilename=   configfilename
-ourSettings.configfilepath = [ourSettings.mypathname ourSettings.myconfigfilename];
-
-% Load the configfile
-runsections='reloadfile'; % 'reloadfile' is better than 'loadfile' since it doesn't ask user where file is located
-Schnitzcells_masterscript
-
-% Update some more variables
-if isempty(strfind(upper(ourSettings.ASCnumber),'ASC'))
-        ourSettings.ASCnumber=['asc' num2str(ourSettings.ASCnumber)];
+%% Show some colors
+%{
+figure; hold on;
+for i=1:size(somecolors,1)
+    plot(i,1,'o','Color',somecolors(i,:),'MarkerSize',10,'MarkerFaceColor',somecolors(i,:))
 end
-ourSettings.myID = [ourSettings.myGroupID '_' ourSettings.ASCnumber];
+%}
 
-%p.movieDate = movieDate;
-%p.movieName = movieName;
+%% Running analyses if necessary
 
-%% Now run the analyis again, if necessary
+% Run over datafiles to run analysis if this is necessary
+for dataIdx= 1:nrDataLines
+    
+    %% skip if empty    
+    if isempty(allXLSdata{dataIdx,1}) | isnan(allXLSdata{dataIdx,1})
+        continue
+    end
+    
+    %% Load configuration file and pre-process dataset info
+    fluorDynamicsManager_sub_PreprocessDatasetInfo        
+        % some parameters that are determined are:
+        % ourSettings, dateDir, theMovieDateOnly, movieName, dataFileName,
+        % identifierInXLS
+    
+    %% Now the idea is to check for the existence of already analyzed data    
+    
+    % Now determine if we want to re-run the analysis
+    % (I.e. if we want to go over all, or if dataset is mentioned in any of 
+    % the to-plot identifiers.)
+    if exist('RUNALLANALYSISIFNECESSARY','var') | any(cellfun(@(x) strcmp(identifierInXLS,x), {IDENTIFIERSTOPLOT{:}}))
+    
+        % And run the analysis if there is not already data
+        if exist(dataFileName,'file')
 
-if ~exist(analysisDataPath,'file')
+            disp(['Dataset [' theMovieDateOnly ', ' movieName '] was already analyzed before; I did not repeat analysis.']);
+
+        else
+
+            %% Otherwise run the analysis
+            disp(['Dataset [' theMovieDateOnly ', ' movieName '] was not analyzed before; running analysis now.']);
+
+            disp('Taking 5 seconds pause before starting..');
+            pause(5);
+
+            % ===
+            % overwrite the PLOTSCATTER setting
+            ourSettings.PLOTSCATTER = 0;
+            % Don't show figures
+            FIGUREVISIBLE='off';      
+
+            % tell master script schnitzcells data should be loaded from directory
+            LOADDATASETATEND = 1;
+
+            % run the masterscript analysis part
+            runsections='makeoutputfull'; 
+            Schnitzcells_masterscript
+
+            % The masterscript will save the data
+            disp('Analysis done and saved.');
+        end
+       
+    end
         
-    % tell master script data should be loaded from directory
-    LOADDATASETATEND = 1;
+end
+disp('Section done, all datasets were inspected to see if analyis was necessary..');
+
+%% Creating grouped plots
+
+% First find out which lines of the xls file match the groups of plots that we want
+applicableIndices = {};
+% Go over the different plot groups
+for plotGroupIdx = 1:numel(IDENTIFIERSTOPLOT)
+    % Now find all lines in the xls file of which the identifier match any
+    % of the IDENTIFIERSTOPLOT{plotGroupIdx}
+    applicableIndices{plotGroupIdx} = ...
+    find(...
+        cellfun(@(currentIdentifierXls) any( ...
+            cellfun(@(currentIdentifierToPlot) strcmp(currentIdentifierToPlot,currentIdentifierXls), IDENTIFIERSTOPLOT{plotGroupIdx})...
+            ),  {allXLSdata{:,4}})...
+    );
+end
+
+
+%% Now go and fetch all the corresponding filepaths
+figurePaths = {};
+paramIdx = 1;
+
+for groupIdx = 1:numel(applicableIndices)
+    for plotIdx = 1:numel(applicableIndices{groupIdx}) 
+        
+       
+        %% 
+        
+        % Set appropriate index
+        dataIdx =  applicableIndices{groupIdx}(plotIdx);
+        
+        % Load configuration file and pre-process dataset info
+        fluorDynamicsManager_sub_PreprocessDatasetInfo
+        
+        % determine which fields are of interest
+        fluorDynamicsManager_sub_GetInterestingFieldsForThisDataSet
+        
+        % Get the path                
+        figFilename = ['FIG_PDF_' parameterOfInterestList{paramIdx} '.fig'];
+        completeFigurePath = [theDirectoryWithThePlots figFilename];
+               
+        % Organize this into the figure list
+        figurePaths{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;
+        
+    end
+end
+
+
+%%
+
+% Then gather the data that corresponds to each of those lines
+for dataIdx= applicableIndices
     
-    runsections='makeoutputfull'; 
-    Schnitzcells_masterscript
+    %% skip if empty    
+    if isempty(allXLSdata{dataIdx,1}) | isnan(allXLSdata{dataIdx,1})
+        continue
+    end
+    
+    %% Load configuration file and pre-process dataset info
+    fluorDynamicsManager_sub_PreprocessDatasetInfo        
+        % some parameters that are determined are:
+        % ourSettings, dateDir, theMovieDateOnly, movieName, dataFileName
+    
+    %% Then perform some plotting
+    paramName = parameterOfInterestList{1};
+    
+    XXXX
+    
+    % Now continue here with determining the path of the plot that we're looking for.. 
+    
+    XXXX
+    
+        
+end
+
+%% Then place the figures neatly tiled into a figure
+
+% Determine the size of our subplot figure first
+nrPanels      = cellfun(@(x) numel(x), applicableIndices);
+totalNrPanels = sum(nrPanels);
+xNrPanels = min(ceil(sqrt(totalNrPanels)), max(nrPanels));
+yNrPanels = sum(ceil(nrPanels./xNrPanels));
+
+testFigure='F:\EXPERIMENTAL_DATA_2014-2015_m1\2015-06-12_CRP_asc852-853_plasmids\2015-06-12_pos1crop_CRP_plasmids_WT_rCRP_asc852\FIG_PDF_G6_mean_cycCor_readableLabels.fig'
+h1 = openfig(testFigure,'reuse');
+ax1 = gca;
+fig1 = get(ax1,'children');
+
+h1=figure(); clf; hold on;
+MW_makeplotlookbetter(8,[],[12.8 19.2]./2,1);
+
+for i=1:10
+
+    s1=subplot(yNrPanels,xNrPanels,i);
+    %set(gca,'YTickLabel',[]); %set(gca,'XTickLabel',[]); 
+    copyobj(fig1,s1);
     
 end
-    
-% Now save the output from the script into a parameter 
+
+%% 
+
+%{
+for i= 1:numel(identifiers)
+disp(identifiers{i});
+end
+%}
+
+%%
+
+
+%% ...
+
+for i=1:10
+    i=i+1
+end
 
 
 
