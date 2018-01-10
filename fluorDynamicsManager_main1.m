@@ -54,6 +54,8 @@
 [ndata, text, allXLSdata] = xlsread('\\storage01\data\AMOLF\users\wehrens\ZZ_EXPERIMENTAL_DATA\MICROSCOPE_OVERVIEW_AND_FIGURES\_projectfile_CRP.xlsx','dataset_list','B16:E200')
 nrDataLines=size(allXLSdata,1);
 
+disp('Excel file with overview of data loaded..');
+
 %% Define which datasets should be plotted together and how
 
 % The plasmid datasets
@@ -86,7 +88,21 @@ COLORSWITHIDENTIFIERS = {...
     ...fourcolors(2,:), ... {'dcAMP-extracell800-ps70-GFP_asc941'},...
     ...
 };
+CUSTOMLIMITSPERPARAMGROUP = {...
+    [NaN NaN    0   2],...
+    [0,  6e4    NaN NaN],...
+    [NaN NaN    NaN NaN]...
+    };
+    % {[xlim(1) xlim(2) ylim(1) ylim(2)], ...}
 
+CUSTOMLIMITSPERPARAMGROUPCCS= {...
+    [-10 10    -.4 .4],...
+    [NaN NaN    NaN NaN],...
+    [NaN NaN    NaN NaN],...
+    [NaN NaN    NaN NaN],...
+    [NaN NaN    NaN NaN],...
+    [NaN NaN    NaN NaN]...
+    };
 %% Test dataset
 fourcolors=linspecer(4);
 morecolors=linspecer(10);
@@ -106,7 +122,7 @@ CUSTOMLIMITSPERPARAMGROUP = {...
     % {[xlim(1) xlim(2) ylim(1) ylim(2)], ...}
 
 CUSTOMLIMITSPERPARAMGROUPCCS= {...
-    [-10 10    -.25 .25],...
+    [NaN NaN    -.4 .4],...
     [NaN NaN    NaN NaN],...
     [NaN NaN    NaN NaN],...
     [NaN NaN    NaN NaN],...
@@ -124,6 +140,15 @@ end
 
 %% Running analyses if necessary
 % TODO: maybe remove this section to a separate script file?
+%
+% Note: if the script crashes (e.g. a problem with setting axis limits)
+% this might be due to NaN values in the data (check e.g. CorrData). This
+% can be resolved by using MW_helper_schnitzcell_terror_counting to
+% identify cells that have NaN values. After checking these errors are
+% non-consequential for the data set (e.g. because it are the last
+% schnitzes in the set that only have 1 frame and no offspring), they can
+% simply be added to the "bad schnitzes" list in the excel config file of
+% that data set. Open MW_GUI_schnitzcells to easily edit the config file.
 
 % Run over datafiles to run analysis if this is necessary
 for dataIdx= 1:nrDataLines
@@ -144,17 +169,17 @@ for dataIdx= 1:nrDataLines
     % Now determine if we want to re-run the analysis
     % (I.e. if we want to go over all, or if dataset is mentioned in any of 
     % the to-plot identifiers.)
-    if exist('RUNALLANALYSISIFNECESSARY','var') | any(cellfun(@(x) strcmp(identifierInXLS,x), {IDENTIFIERSTOPLOT{:}}))
+    if exist('NOSELECTIONLOOKATALLANALYSES','var') | any(cellfun(@(x) strcmp(identifierInXLS,x), {IDENTIFIERSTOPLOT{:}}))
     
         % And run the analysis if there is not already data
-        if exist(dataFileName,'file')
+        if exist(dataFileName,'file') & ~exist('RERUNANALYSIS','var')
 
             disp(['Dataset [' theMovieDateOnly ', ' movieName '] was already analyzed before; I did not repeat analysis.']);
 
         else
 
             %% Otherwise run the analysis
-            disp(['Dataset [' theMovieDateOnly ', ' movieName '] was not analyzed before; running analysis now.']);
+            disp(['Dataset [' theMovieDateOnly ', ' movieName '] was not analyzed before (or user defined re-run); running analysis now.']);
 
             disp('Taking 5 seconds pause before starting..');
             pause(5);
@@ -164,14 +189,23 @@ for dataIdx= 1:nrDataLines
             ourSettings.PLOTSCATTER = 0;
             % Don't show figures
             FIGUREVISIBLE='off';      
-
+            % Re-evaluate the bad schnitzes (in case the Excel file was
+            % updated)
+            ourSettings.alreadyRemovedInMatFile = 0;
             % tell master script schnitzcells data should be loaded from directory
             LOADDATASETATEND = 1;
+            % Note:
+            % also ourSettings.fitTimeCrosscorr is an important paramter
+            % that decides which part of the branchData is taken.
 
             % run the masterscript analysis part
             runsections='makeoutputfull'; 
             Schnitzcells_masterscript
 
+            % A number of (invisible) figures will have been
+            % generated, so close all figures here to avoid accumulation..
+            close all;
+            
             % The masterscript will save the data
             disp('Analysis done and saved.');
         end
@@ -181,7 +215,7 @@ for dataIdx= 1:nrDataLines
 end
 disp('Section done, all datasets were inspected to see if analyis was necessary..');
 
-%% Creating grouped plots
+%% Create grouped plots
 
 % First find out which lines of the xls file match the groups of plots that we want
 applicableIndices = {};
@@ -199,8 +233,8 @@ end
 
 
 %% Now go and fetch all the corresponding filepaths, first for single params
-figurePaths = {};
-paramIdx = 2;
+figurePaths = struct;
+paramIdx = 1;
 
 for groupIdx = 1:numel(applicableIndices)
     for plotIdx = 1:numel(applicableIndices{groupIdx}) 
@@ -218,20 +252,26 @@ for groupIdx = 1:numel(applicableIndices)
         fluorDynamicsManager_sub_GetInterestingFieldsForThisDataSet
             % i.e. get parameterOfInterestList
         
-        % Get the path                
-        figFilename = ['FIG_PDF_' parameterOfInterestList{paramIdx} '.fig'];
+        % Get the path to the PDF and put into figure list
+        figFilename = ['FIG_PDF_' parameterOfInterestList{paramIdx} '_small.fig'];
         completeFigurePath = [theDirectoryWithThePlots figFilename];
-               
-        % Organize this into the figure list
-        figurePaths{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;
+        figurePaths.PDF{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;
+        % Get the path to the branches plot
+        figFilename = ['FIG_branches_' parameterOfInterestList{paramIdx} '_small.fig'];
+        completeFigurePath = [theDirectoryWithThePlots figFilename];
+        figurePaths.branches{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;
+        % Get the path to the CV over time plot
+        figFilename = ['FIG_CVovertime_' parameterOfInterestList{paramIdx} '_small.fig'];
+        completeFigurePath = [theDirectoryWithThePlots figFilename];
+        figurePaths.CV{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;        
+        
         
     end
 end
-
-plotType = 'SingleParameter';
+dualOrSinglePlot = 'SingleParameter';
 
 %% The same can be done for cross-correlations
-figurePaths = {};
+%figurePaths = struct;
 paramIdx = 1;
 
 for groupIdx = 1:numel(applicableIndices)
@@ -251,17 +291,20 @@ for groupIdx = 1:numel(applicableIndices)
             % i.e. get parameterOfInterestList
         
         % Get the path                
-        figFilename = ['FIG_crosscorrs_' parameterOfInterestDoubleCombinatorialList{paramIdx} '.fig'];
+        figFilename = ['FIG_crosscorrs_' parameterOfInterestDoubleCombinatorialList{paramIdx} '_small.fig'];
         completeFigurePath = [theDirectoryWithThePlots figFilename];
                
         % Organize this into the figure list
-        figurePaths{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;
+        figurePaths.CCs{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;
         
     end
 end
 
-plotType = 'CC';
+dualOrSinglePlot = 'CC';
 %% Then place the figures neatly tiled into a figure
+paramIdx=1;
+plotType = 'CCs'; % CCs branches PDF CVovertime
+dualOrSinglePlot = 'CC'; % CC or SingleParameter
 
 % Determine the size of our subplot figure first
 nrPanels      = cellfun(@(x) numel(x), applicableIndices);
@@ -281,7 +324,6 @@ MW_makeplotlookbetter(8,[],[12.8 theHeight]./2,1);
 groupLabels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 %
-paramIdx=1;
 panelLine=0;
 panelNr=0;
 for groupIdx = 1:numel(applicableIndices)
@@ -299,7 +341,7 @@ for groupIdx = 1:numel(applicableIndices)
         panelNr=(panelLine-1)*xNrPanels+panelColumn
 
         % Get the path for the current figure
-        currentFigure = figurePaths{paramIdx}{groupIdx}{plotIdx};
+        currentFigure = figurePaths.(plotType){paramIdx}{groupIdx}{plotIdx};
 
         % Load and get handle for current figure
         hCurrentFig = openfig(currentFigure);
@@ -325,20 +367,24 @@ for groupIdx = 1:numel(applicableIndices)
             set(t, 'position', [0 t1(2) t1(3)]);
         end
         
-        % Set limits to axes if desired
-        if strcmp(plotType,'SingleParameter')
-            if ~any(isnan(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(1:2)))
-                xlim(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(1:2));
+        % Set limits to axes if desired        
+        if strcmp(dualOrSinglePlot,'SingleParameter')
+            if exist('CUSTOMLIMITSPERPARAMGROUP','var')
+                if ~any(isnan(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(1:2)))
+                    xlim(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(1:2));
+                end
+                if ~any(isnan(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(3:4)))
+                    ylim(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(3:4));
+                end
             end
-            if ~any(isnan(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(3:4)))
-                ylim(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(3:4));
-            end
-        elseif strcmp(plotType,'CC')
+        elseif strcmp(dualOrSinglePlot,'CC')
+            if exist('CUSTOMLIMITSPERPARAMGROUPCCS','var')            
             if ~any(isnan(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(1:2)))
                 xlim(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(1:2));
             end
             if ~any(isnan(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(3:4)))
                 ylim(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(3:4));
+            end
             end
         end
         
@@ -351,9 +397,9 @@ figure(h1);
 % Also give overview of the different conditions:
 disp(['===' 10 'FIGURE LEGEND']);
 for idIdx = 1:size(IDENTIFIERSTOPLOT,2)
-    if strcmp(plotType,'SingleParameter')
+    if strcmp(dualOrSinglePlot,'SingleParameter')
         disp([groupLabels(idIdx) ': ' IDENTIFIERSTOPLOT{idIdx}{:} ', ' parameterOfInterestList{paramIdx}]); 
-    elseif strcmp(plotType,'CC')
+    elseif strcmp(dualOrSinglePlot,'CC')
         disp([groupLabels(idIdx) ': ' IDENTIFIERSTOPLOT{idIdx}{:} ', ' parameterOfInterestDoubleCombinatorialList{paramIdx}]); 
     end
 end

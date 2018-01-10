@@ -69,7 +69,10 @@ configFileName           = configFileName;
 %% Set up ourSettings struct required to run analysis
 
 % Clear ourSettings and other config variables
-clear -global settings ourSettings p
+clear -global settings ourSettings p 
+
+% Clear output parameters
+clear -global schnitzcells s_rm output
 
 % Set up minimal set of variables in ourSettings struct
 ourSettings.mypathname=         dateDir;
