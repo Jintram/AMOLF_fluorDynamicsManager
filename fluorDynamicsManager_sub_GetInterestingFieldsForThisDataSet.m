@@ -22,6 +22,10 @@ for fluorIdx = 1:nrFluorColors
     currentFluorFieldName = strrep(ourSettings.fluorFieldName,'X',upper(currentFluor));
     currentRateFieldName  = strrep(ourSettings.fluorDerivativeFieldName,'X',upper(currentFluor));
     
+    currentMuFieldNameDerivativeName = strrep(ourSettings.muFieldNameDerivative,'X',upper(currentFluor));
+
+    currentFluorExtrapolatedAtRateTimeName = [ourSettings.fluorFieldName '_at_d' upper(currentFluor)];
+    
     % Now create the entrances for parameters that relate to fluor
     % measurements   
     parameterOfInterestList{end+1} = currentFluorFieldName;
@@ -38,7 +42,7 @@ for fluorIdx = 1:nrFluorColors
     
     % R(rate, growth)
     parameterOfInterestDoubleCombinatorialList{end+1} = ...
-        [currentRateFieldName '_' muFieldName];
+        [currentRateFieldName '_' currentMuFieldNameDerivativeName];
     
     % R(Y, Y), i.e. autocorrelation functions, order: mu, C, p.
     parameterOfInterestDoubleCombinatorialList{end+1} = ...
@@ -50,7 +54,7 @@ for fluorIdx = 1:nrFluorColors
     
     % R(prod, E)
     parameterOfInterestDoubleCombinatorialList{end+1} = ...   
-        [currentRateFieldName '_' currentFluorFieldName];
+        [currentRateFieldName '_' currentFluorExtrapolatedAtRateTimeName];
     
     % Fluors against each other
     for fluorIdx2 = (fluorIdx+1):nrFluorColors

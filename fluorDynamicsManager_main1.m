@@ -5,8 +5,7 @@
 % \\storage01\data\AMOLF\users\wehrens\ZZ_EXPERIMENTAL_DATA\MICROSCOPE_EXPERIMENTS_shortcuts\CRP_plasmid_data
 % also for a .docx file with a list of plasmid data.
 
-
-
+OUTPUTFOLDER = 'U:\THESIS\Thesis\ChapterX_CRP\Figures\matlabExport\';
 
 %% A flashy new script to handle all my data
 
@@ -51,84 +50,26 @@
 
 %% Load Excel file to get information on directories
 
-[ndata, text, allXLSdata] = xlsread('\\storage01\data\AMOLF\users\wehrens\ZZ_EXPERIMENTAL_DATA\MICROSCOPE_OVERVIEW_AND_FIGURES\_projectfile_CRP.xlsx','dataset_list','B16:E200')
+[ndata, theTextData, allXLSdata] = xlsread('\\storage01\data\AMOLF\users\wehrens\ZZ_EXPERIMENTAL_DATA\MICROSCOPE_OVERVIEW_AND_FIGURES\_projectfile_CRP.xlsx','dataset_list','B16:E200')
 nrDataLines=size(allXLSdata,1);
 
 disp('Excel file with overview of data loaded..');
 
 %% Define which datasets should be plotted together and how
+% Sets of data that you want to plot are defined by a few key parameters, 
 
-% The plasmid datasets
-% { {identifier1}, {identifier2, identifier3}, .. }
-% The cells within the cells allow for synonyms, e.g.
-% {identifier2,identifier3} will be considered as if they were the
-% same identifier.
-IDENTIFIERSTOPLOT = {...
-    {'WT_plasmids_pbla-CRP_pCRP-GFP_asc852'}, ...
-    {'WT_plasmids_pbla-CRP_ps70-GFP_asc853'}, ...
-    {'dCRP_plasmids_pbla-CRP_pCRP-GFP_asc854'}, ...
-    {'dCRP_plasmids_pbla-CRP_ps70-GFP_asc855'}, ...
-    {'WT_plasmids_ps70-GFP_asc841'}, ...
-    {'WT_plasmids_pCRP-GFP_asc842'}, ...    
-    ...{'dcAMP_plasmids-extracell800-pCRP-GFP_asc893','dcAMP-extracell800-pCRP-GFP_asc894'},...
-    ...{'dcAMP_plasmids-extracell800-ps70-GFP_asc941'},...
-    ...
-    };
-% Now also define the colors for these plots
-fourcolors=linspecer(4);
-morecolors=linspecer(10);
-COLORSWITHIDENTIFIERS = {...
-    fourcolors(1,:), ... {'WT_plasmids_pbla-CRP_pCRP-GFP_asc852'}, ...
-    fourcolors(1,:), ... {'WT_plasmids_pbla-CRP_ps70-GFP_asc853'}, ...
-    fourcolors(2,:), ... {'dCRP_plasmids_pbla-CRP_pCRP-GFP_asc854'}, ...
-    fourcolors(2,:), ... {'dCRP_plasmids_pbla-CRP_ps70-GFP_asc855'}, ...
-    fourcolors(1,:), ... {'WT_plasmids_ps70-GFP_asc841'}, ...
-    fourcolors(1,:), ... {'WT_plasmids_pCRP-GFP_asc842'}, ...    
-    ...fourcolors(2,:), ... {'dcAMP-extracell800-pCRP-GFP_asc893','dcAMP-extracell800-pCRP-GFP_asc894'},...
-    ...fourcolors(2,:), ... {'dcAMP-extracell800-ps70-GFP_asc941'},...
-    ...
-};
-CUSTOMLIMITSPERPARAMGROUP = {...
-    [NaN NaN    0   2],...
-    [0,  6e4    NaN NaN],...
-    [NaN NaN    NaN NaN]...
-    };
-    % {[xlim(1) xlim(2) ylim(1) ylim(2)], ...}
+%% 
+z_plotssets_plasmids1
 
-CUSTOMLIMITSPERPARAMGROUPCCS= {...
-    [-10 10    -.4 .4],...
-    [NaN NaN    NaN NaN],...
-    [NaN NaN    NaN NaN],...
-    [NaN NaN    NaN NaN],...
-    [NaN NaN    NaN NaN],...
-    [NaN NaN    NaN NaN]...
-    };
-%% Test dataset
-fourcolors=linspecer(4);
-morecolors=linspecer(10);
+%% 
+z_plotssets_plasmids2
 
-IDENTIFIERSTOPLOT = {...
-    {'WT_plasmids_pbla-CRP_pCRP-GFP_asc852'},...
-    {'WT_plasmids_pbla-CRP_ps70-GFP_asc853'}};
-COLORSWITHIDENTIFIERS = {...
-    fourcolors(1,:),...
-    fourcolors(1,:),};
+%%
 
-CUSTOMLIMITSPERPARAMGROUP = {...
-    [NaN NaN    NaN NaN],...
-    [0,  6e4    NaN NaN],...
-    [NaN NaN    NaN NaN]...
-    };
-    % {[xlim(1) xlim(2) ylim(1) ylim(2)], ...}
+%{
+z_plotssets_testplots
+%}
 
-CUSTOMLIMITSPERPARAMGROUPCCS= {...
-    [NaN NaN    -.4 .4],...
-    [NaN NaN    NaN NaN],...
-    [NaN NaN    NaN NaN],...
-    [NaN NaN    NaN NaN],...
-    [NaN NaN    NaN NaN],...
-    [NaN NaN    NaN NaN]...
-    };
     
 %% Show some colors
 %{
@@ -139,81 +80,8 @@ end
 %}
 
 %% Running analyses if necessary
-% TODO: maybe remove this section to a separate script file?
-%
-% Note: if the script crashes (e.g. a problem with setting axis limits)
-% this might be due to NaN values in the data (check e.g. CorrData). This
-% can be resolved by using MW_helper_schnitzcell_terror_counting to
-% identify cells that have NaN values. After checking these errors are
-% non-consequential for the data set (e.g. because it are the last
-% schnitzes in the set that only have 1 frame and no offspring), they can
-% simply be added to the "bad schnitzes" list in the excel config file of
-% that data set. Open MW_GUI_schnitzcells to easily edit the config file.
 
-% Run over datafiles to run analysis if this is necessary
-for dataIdx= 1:nrDataLines
-    
-    %% skip if empty    
-    if isempty(allXLSdata{dataIdx,1}) | isnan(allXLSdata{dataIdx,1})
-        continue
-    end
-    
-    %% Load configuration file and pre-process dataset info
-    fluorDynamicsManager_sub_PreprocessDatasetInfo        
-        % some parameters that are determined are:
-        % ourSettings, dateDir, theMovieDateOnly, movieName, dataFileName,
-        % identifierInXLS
-    
-    %% Now the idea is to check for the existence of already analyzed data    
-    
-    % Now determine if we want to re-run the analysis
-    % (I.e. if we want to go over all, or if dataset is mentioned in any of 
-    % the to-plot identifiers.)
-    if exist('NOSELECTIONLOOKATALLANALYSES','var') | any(cellfun(@(x) strcmp(identifierInXLS,x), {IDENTIFIERSTOPLOT{:}}))
-    
-        % And run the analysis if there is not already data
-        if exist(dataFileName,'file') & ~exist('RERUNANALYSIS','var')
-
-            disp(['Dataset [' theMovieDateOnly ', ' movieName '] was already analyzed before; I did not repeat analysis.']);
-
-        else
-
-            %% Otherwise run the analysis
-            disp(['Dataset [' theMovieDateOnly ', ' movieName '] was not analyzed before (or user defined re-run); running analysis now.']);
-
-            disp('Taking 5 seconds pause before starting..');
-            pause(5);
-
-            % ===
-            % overwrite the PLOTSCATTER setting
-            ourSettings.PLOTSCATTER = 0;
-            % Don't show figures
-            FIGUREVISIBLE='off';      
-            % Re-evaluate the bad schnitzes (in case the Excel file was
-            % updated)
-            ourSettings.alreadyRemovedInMatFile = 0;
-            % tell master script schnitzcells data should be loaded from directory
-            LOADDATASETATEND = 1;
-            % Note:
-            % also ourSettings.fitTimeCrosscorr is an important paramter
-            % that decides which part of the branchData is taken.
-
-            % run the masterscript analysis part
-            runsections='makeoutputfull'; 
-            Schnitzcells_masterscript
-
-            % A number of (invisible) figures will have been
-            % generated, so close all figures here to avoid accumulation..
-            close all;
-            
-            % The masterscript will save the data
-            disp('Analysis done and saved.');
-        end
-       
-    end
-        
-end
-disp('Section done, all datasets were inspected to see if analyis was necessary..');
+fluorDynamicsManager_sub_runAnalyses
 
 %% Create grouped plots
 
@@ -231,10 +99,8 @@ for plotGroupIdx = 1:numel(IDENTIFIERSTOPLOT)
     );
 end
 
-
 %% Now go and fetch all the corresponding filepaths, first for single params
 figurePaths = struct;
-paramIdx = 1;
 
 for groupIdx = 1:numel(applicableIndices)
     for plotIdx = 1:numel(applicableIndices{groupIdx}) 
@@ -252,27 +118,35 @@ for groupIdx = 1:numel(applicableIndices)
         fluorDynamicsManager_sub_GetInterestingFieldsForThisDataSet
             % i.e. get parameterOfInterestList
         
-        % Get the path to the PDF and put into figure list
-        figFilename = ['FIG_PDF_' parameterOfInterestList{paramIdx} '_small.fig'];
-        completeFigurePath = [theDirectoryWithThePlots figFilename];
-        figurePaths.PDF{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;
-        % Get the path to the branches plot
-        figFilename = ['FIG_branches_' parameterOfInterestList{paramIdx} '_small.fig'];
-        completeFigurePath = [theDirectoryWithThePlots figFilename];
-        figurePaths.branches{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;
-        % Get the path to the CV over time plot
-        figFilename = ['FIG_CVovertime_' parameterOfInterestList{paramIdx} '_small.fig'];
-        completeFigurePath = [theDirectoryWithThePlots figFilename];
-        figurePaths.CV{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;        
+        for paramIdx = 1:numel(parameterOfInterestList)
+            % Get the path to the PDF and put into figure list
+            figFilename = ['FIG_PDF_' parameterOfInterestList{paramIdx} '_small.fig'];
+            completeFigurePath = [theDirectoryWithThePlots figFilename];
+            figurePaths.PDF{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;
+            % Get the path to the branches plot
+            figFilename = ['FIG_branches_' parameterOfInterestList{paramIdx} '_small.fig'];
+            completeFigurePath = [theDirectoryWithThePlots figFilename];
+            figurePaths.branches{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;
+            % Get the path to the CV over time plot
+            figFilename = ['FIG_CVovertime_' parameterOfInterestList{paramIdx} '_small.fig'];
+            completeFigurePath = [theDirectoryWithThePlots figFilename];
+            figurePaths.CV{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;    
+        end
         
         
     end
 end
-dualOrSinglePlot = 'SingleParameter';
+
+disp('==');
+allParamString=cell2mat(arrayfun(@(x) [10 '- ' parameterOfInterestList{x}],1:numel(parameterOfInterestList),'UniformOutput',0));
+disp(['Parameters that have been defined in last run: ' allParamString]);
+
+allDualParamString=cell2mat(arrayfun(@(x) [10 '- ' parameterOfInterestDoubleCombinatorialList{x}],1:numel(parameterOfInterestDoubleCombinatorialList),'UniformOutput',0));
+disp(['Parameters pairs that have been defined in last run: ' allDualParamString]);
+disp('==');
 
 %% The same can be done for cross-correlations
 %figurePaths = struct;
-paramIdx = 1;
 
 for groupIdx = 1:numel(applicableIndices)
     for plotIdx = 1:numel(applicableIndices{groupIdx}) 
@@ -288,122 +162,434 @@ for groupIdx = 1:numel(applicableIndices)
         
         % determine which fields are of interest
         fluorDynamicsManager_sub_GetInterestingFieldsForThisDataSet
-            % i.e. get parameterOfInterestList
+            % i.e. get parameterOfInterestList, parameterOfInterestDoubleCombinatorialList
         
-        % Get the path                
-        figFilename = ['FIG_crosscorrs_' parameterOfInterestDoubleCombinatorialList{paramIdx} '_small.fig'];
-        completeFigurePath = [theDirectoryWithThePlots figFilename];
-               
-        % Organize this into the figure list
-        figurePaths.CCs{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;
+        for paramIdx = 1:numel(parameterOfInterestDoubleCombinatorialList)
+            
+            %%
+            
+            % Get the path                
+            figFilename = ['FIG_crosscorrs_' parameterOfInterestDoubleCombinatorialList{paramIdx} '_small.fig'];
+            completeFigurePath = [theDirectoryWithThePlots figFilename];
+
+            % Organize this into the figure list
+            figurePaths.CCs{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;
+        
+        end
         
     end
 end
 
-dualOrSinglePlot = 'CC';
 %% Then place the figures neatly tiled into a figure
-paramIdx=1;
-plotType = 'CCs'; % CCs branches PDF CVovertime
-dualOrSinglePlot = 'CC'; % CC or SingleParameter
 
-% Determine the size of our subplot figure first
-nrPanels      = cellfun(@(x) numel(x), applicableIndices);
-totalNrPanels = sum(nrPanels);
-xNrPanels = min(ceil(sqrt(totalNrPanels)), max(nrPanels));
-yNrPanels = sum(ceil(nrPanels./xNrPanels));
+SINGLEORDUALNAMES = {'single','CC'};
+SINGLEPLOTTYPES   = {'branches' 'PDF' 'CVovertime'};
 
-% Determine (y) size of figure
-theHeight = min(yNrPanels*4.8, 19.2);
+% dual or single, i.e. single parameter, or comparison of two parameters
+% like for CC
+for singleOrDualPlot = 1:2  
 
-% Make figure
-if exist('h1','var'), if ishandle(h1), close(h1), end, end % close if handle already existed
-h1=figure(); clf; hold on; % make new
-MW_makeplotlookbetter(8,[],[12.8 theHeight]./2,1); 
+    if singleOrDualPlot==1
+        paramIndices = 1:numel(parameterOfInterestList);        
+    elseif singleOrDualPlot==2
+        paramIndices = 1:numel(parameterOfInterestDoubleCombinatorialList);                
+    else, error('Not recognized');
+    end
+    
+    for paramIdx=paramIndices    
 
-% Necessary later
-groupLabels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
-%
-panelLine=0;
-panelNr=0;
-for groupIdx = 1:numel(applicableIndices)
-    panelLine=panelLine+1;
-    panelColumn=0;
-    for plotIdx = 1:numel(applicableIndices{groupIdx}) 
-
-        %%
-        
-        % Determine which panel to use
-        panelColumn=panelColumn+1;
-        if panelColumn>xNrPanels
-            panelColumn=0; panelLine=panelLine+1;
-        end
-        panelNr=(panelLine-1)*xNrPanels+panelColumn
-
-        % Get the path for the current figure
-        currentFigure = figurePaths.(plotType){paramIdx}{groupIdx}{plotIdx};
-
-        % Load and get handle for current figure
-        hCurrentFig = openfig(currentFigure);
-        set(0,'CurrentFigure',hCurrentFig);
-        set(hCurrentFig,'Visible','off');
-        ax1 = gca;
-        fig1 = get(ax1,'children');
-
-        % Switch to figure with multiple panels
-        set(0,'CurrentFigure',h1);
-        s1=subplot(yNrPanels,xNrPanels,panelNr);        
-        copyobj(fig1,s1);
-        
-        % Turn of axes ticks if desired
-        %set(gca,'YTickLabel',[]); %set(gca,'XTickLabel',[]); 
-        
-        % give a title if it is the first of a group
-        if plotIdx==1
-            t=title(groupLabels(groupIdx));
-            set(t, 'horizontalAlignment', 'left');
-            set(t, 'units', 'normalized');
-            t1 = get(t, 'position');
-            set(t, 'position', [0 t1(2) t1(3)]);
+        if singleOrDualPlot == 1
+            plotType = SINGLEPLOTTYPES{paramIdx};
+        elseif singleOrDualPlot == 2
+            plotType = 'CCs'; % CCs branches PDF CVovertime
         end
         
-        % Set limits to axes if desired        
-        if strcmp(dualOrSinglePlot,'SingleParameter')
-            if exist('CUSTOMLIMITSPERPARAMGROUP','var')
-                if ~any(isnan(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(1:2)))
-                    xlim(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(1:2));
+        %% Now create for each parameter (or combination of parameters) an overview plot        
+
+        % Determine the size of our subplot figure first
+        nrPanels      = cellfun(@(x) numel(x), applicableIndices);
+        totalNrPanels = sum(nrPanels);
+        xNrPanels = min(ceil(sqrt(totalNrPanels)), max(nrPanels));
+        yNrPanels = sum(ceil(nrPanels./xNrPanels));
+
+        % Determine (y) size of figure
+        theHeight = min(yNrPanels*4.8, 19.2);
+
+        % Make figure
+        if exist('h1','var'), if ishandle(h1), close(h1), end, end % close if handle already existed
+        h1=figure(); clf; hold on; % make new
+        MW_makeplotlookbetter(8,[],[12.8 theHeight]./2,1); 
+
+        % Necessary later
+        groupLabels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+        %
+        panelLine=0;
+        panelNr=0;
+        for groupIdx = 1:numel(applicableIndices)
+            panelLine=panelLine+1;
+            panelColumn=0;
+            for plotIdx = 1:numel(applicableIndices{groupIdx}) 
+
+                %%
+
+                % Determine which panel to use
+                panelColumn=panelColumn+1;
+                if panelColumn>xNrPanels
+                    panelColumn=0; panelLine=panelLine+1;
                 end
-                if ~any(isnan(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(3:4)))
-                    ylim(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(3:4));
+                panelNr=(panelLine-1)*xNrPanels+panelColumn
+
+                % Get the path for the current figure
+                currentFigure = figurePaths.(plotType){paramIdx}{groupIdx}{plotIdx};
+
+                % Load and get handle for current figure
+                hCurrentFig = openfig(currentFigure);
+                set(0,'CurrentFigure',hCurrentFig);
+                set(hCurrentFig,'Visible','off');
+                ax1 = gca;
+                fig1 = get(ax1,'children');
+
+                % Switch to figure with multiple panels
+                set(0,'CurrentFigure',h1);
+                s1=subplot(yNrPanels,xNrPanels,panelNr);        
+                copyobj(fig1,s1);
+
+                % XLim and YLim are not copied, so copy manually
+                xlim(ax1.XLim);
+                ylim(ax1.YLim);
+
+                % Turn of axes ticks if desired
+                %set(gca,'YTickLabel',[]); %set(gca,'XTickLabel',[]); 
+
+                % give a title if it is the first of a group
+                if plotIdx==1
+                    t=title(groupLabels(groupIdx));
+                    set(t, 'horizontalAlignment', 'left');
+                    set(t, 'units', 'normalized');
+                    t1 = get(t, 'position');
+                    %set(t, 'position', [0 t1(2) t1(3)]);
+                    set(t, 'position', [0-.1*xNrPanels t1(2) t1(3)]); % This was a bit trial and error
                 end
+
+                % Set limits to axes if desired        
+                if singleOrDualPlot == 1
+                    if exist('CUSTOMLIMITSPERPARAMGROUP','var')
+                        if ~any(isnan(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(1:2)))
+                            xlim(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(1:2));
+                        end
+                        if ~any(isnan(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(3:4)))
+                            ylim(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(3:4));
+                        end
+                    end
+                elseif singleOrDualPlot == 2
+                    if exist('CUSTOMLIMITSPERPARAMGROUPCCS','var')            
+                    if ~any(isnan(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(1:2)))
+                        xlim(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(1:2));
+                    end
+                    if ~any(isnan(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(3:4)))
+                        ylim(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(3:4));
+                    end
+                    end
+                end
+
             end
-        elseif strcmp(dualOrSinglePlot,'CC')
-            if exist('CUSTOMLIMITSPERPARAMGROUPCCS','var')            
-            if ~any(isnan(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(1:2)))
-                xlim(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(1:2));
-            end
-            if ~any(isnan(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(3:4)))
-                ylim(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(3:4));
-            end
+
+        end
+
+        figure(h1);
+
+        % Also give overview of the different conditions:
+        disp(['===' 10 'FIGURE LEGEND']);
+        for idIdx = 1:size(IDENTIFIERSTOPLOT,2)
+            if singleOrDualPlot == 1
+                disp([groupLabels(idIdx) ': ' IDENTIFIERSTOPLOT{idIdx}{:} ', ' parameterOfInterestList{paramIdx}]); 
+            elseif singleOrDualPlot == 2
+                disp([groupLabels(idIdx) ': ' IDENTIFIERSTOPLOT{idIdx}{:} ', ' parameterOfInterestDoubleCombinatorialList{paramIdx}]); 
             end
         end
+        disp('===');
+
+        %% Now save the plot
+        
+        if singleOrDualPlot == 1
+            plotName = parameterOfInterestList{paramIdx};
+        elseif singleOrDualPlot == 2
+            plotName = parameterOfInterestDoubleCombinatorialList{paramIdx};
+        end
+        
+        fileName = [GROUPNAME '_' plotType '_' ]
+        
+        saveas
         
     end
+        
+end
+
+%% Now to compare some things that are only stored in the output parameters
+
+PARAMETERNAMESTOCOLLECT = {'growthMean','CV'};
+
+for groupIdx = 1:numel(applicableIndices)
+    for plotIdx = 1:numel(applicableIndices{groupIdx}) 
+
+
+        %% 
+
+        clear output
+
+        % Set appropriate index
+        dataIdx =  applicableIndices{groupIdx}(plotIdx);
+
+        % Load configuration file and pre-process dataset info
+        fluorDynamicsManager_sub_PreprocessDatasetInfo
+            % also determines dataFileName
+
+        load(dataFileName,'output');
+
+        for paramIdx = 1:numel(PARAMETERNAMESTOCOLLECT)
+
+            currentParameterNameToCollect=PARAMETERNAMESTOCOLLECT{paramIdx};
+
+            collectedOutput.(currentParameterNameToCollect){groupIdx}{plotIdx} = ...
+                output.(currentParameterNameToCollect);
+        end
+
+    end
+end
+    
+
+
+%% A simple direct plot for values
+
+currentParameterNameToCollect='growthMean';
+plotType = 'mu'; % mu, CV; This will be used later for labeling of plot
+
+labelLocations = []; technicalReplicateNrs = [];
+allMeans = []; allSEMs = [];
+for groupIdx = 1:numel(applicableIndices)
+
+    % Get values
+    allCurrentValues = [collectedOutput.(currentParameterNameToCollect){groupIdx}{:}];
+    
+    % Mean, SEM, etc
+    currentMean = mean(allCurrentValues);
+    currentSEM = std(allCurrentValues)/sqrt(numel(allCurrentValues));
+    currentTechnicalReplicateNr = numel(allCurrentValues);
+    
+    % Remove SEMs based on 1 replicate
+    if currentTechnicalReplicateNr==1
+        currentSEM=NaN;
+    end
+        
+    labelLocations(end+1) = groupIdx;
+    technicalReplicateNrs(end+1) = currentTechnicalReplicateNr;
+    allMeans(end+1)= currentMean;
+    allSEMs(end+1) = currentSEM;
+end
+
+myYlim=[0 max(allMeans)*1.1];
+
+% print values on top
+for groupIdx = 1:numel(applicableIndices)
+    myValueString=sprintf('%0.2f',allMeans(groupIdx));
+    text(groupIdx, myYlim(2),myValueString,'HorizontalAlignment','center');
+end
+
+labelNames = arrayfun(@(x) IDENTIFIERSTOPLOT{x}{:}, 1:numel(IDENTIFIERSTOPLOT),'UniformOutput', 0);
+
+set(gca,'XTick',labelLocations,'XTickLabel',labelNames,'TickLabelInterpreter','None');
+xtickangle(90);
+
+ylabel('Growth rate [dbl/hr]');
+MW_makeplotlookbetter(10);
+
+
+%% Do the same as above for the slightly more complicated CV
+
+searchTermForWhatToPlot = 'mu'; % e.g.: mu, dG, G5
+
+% Find the field name based on simple search term
+theFieldNames = fieldnames(collectedOutput.CV{1}{1});
+theFieldIdx   = find(arrayfun(@(x) any(strfind(theFieldNames{x},searchTermForWhatToPlot)), 1:numel(theFieldNames)));
+whatToPlotName = theFieldNames{theFieldIdx};
+
+labelLocations=[];
+technicalReplicateNrs = [];
+allMeans = []; allSEMs = [];
+for groupIdx = 1:numel(applicableIndices)
+
+    % Get values
+    allCurrentValues = arrayfun(@(x) collectedOutput.CV{groupIdx}{x}.(whatToPlotName).meanCoefficientOfVariationLast10, 1:numel(collectedOutput.CV{groupIdx}) );
+        % note that CV is determined in a complicated way
+    
+    % Mean, SEM, etc
+    currentMean = mean(allCurrentValues);
+    currentSEM = std(allCurrentValues)/sqrt(numel(allCurrentValues));
+    currentTechnicalReplicateNr = numel(allCurrentValues);
+    
+    % Remove SEMs based on 1 replicate
+    if currentTechnicalReplicateNr==1
+        currentSEM=NaN;
+    end
+    
+    % Store for later plotting
+    labelLocations(end+1) = groupIdx;
+    technicalReplicateNrs(end+1) = currentTechnicalReplicateNr;
+    allMeans(end+1)= currentMean;
+    allSEMs(end+1) = currentSEM;
+end
+
+plotType = 'CV'; % mu, CV
+
+%% General way of plotting data per group..
+% TODO: maybe make a function out of this?
+
+%plotType = 'CV'; % mu, CV
+
+h1=figure; clf; hold on;
+bar(1:numel(applicableIndices), allMeans,'FaceColor',[.7 .7 .7]);
+errorbar(1:numel(applicableIndices), allMeans, allSEMs,'k','LineStyle','none','LineWidth',2);
+
+myYlim=[0 max(allMeans+allSEMs)*1.1];
+
+% print values on top
+for groupIdx = 1:numel(applicableIndices)
+    myValueString=sprintf('%0.2f',allMeans(groupIdx));
+    text(groupIdx, myYlim(2),myValueString,'HorizontalAlignment','center');
+end
+
+% xtick labels
+labelNames = arrayfun(@(x) IDENTIFIERSTOPLOT{x}{:}, 1:numel(IDENTIFIERSTOPLOT),'UniformOutput', 0);
+set(gca,'XTick',labelLocations,'XTickLabel',labelNames,'TickLabelInterpreter','None');
+xtickangle(90);
+
+MW_makeplotlookbetter(10);
+
+if strcmp(plotType,'mu')
+    ylabel('Growth rate [dbl/hr]');
+elseif strcmp(plotType,'CV')
+    ylabel('CV');
+else
+    ylabel('[unkown parameter]');
+end
+
+
+%plotting CV
+%output.CV.(theFieldNames).meanCoefficientOfVariationLast10
+
+%% Plot CV lines separately but color for group
+
+searchTermForWhatToPlot = 'mu'; % e.g.: mu, dG, G5
+
+% Find the field name based on simple search term
+theFieldNames = fieldnames(collectedOutput.CV{1}{1});
+theFieldIdx   = find(arrayfun(@(x) any(strfind(theFieldNames{x},searchTermForWhatToPlot)), 1:numel(theFieldNames)));
+whatToPlotName = theFieldNames{theFieldIdx};
+
+% Now plot
+h1=figure; clf; hold on;
+
+% cosmetics
+someColors = linspecer(numel(applicableIndices));
+
+labelLocations = []; technicalReplicateNrs = [];
+allMeans = []; allSEMs = [];
+myLegendLines = []; myAxes = [];
+allWeighedAverages={};
+for groupIdx = 1:numel(applicableIndices)
+
+    allWeighedAverages{groupIdx}=[];
+    for lineIdx=1:numel(collectedOutput.CV{groupIdx})
+    
+        % Get values
+        currentValuesToPlot = ...
+            collectedOutput.CV{groupIdx}{lineIdx}.(whatToPlotName).coefficientOfVariationOverTime;
+        currentTimePoints = ...
+            collectedOutput.CV{groupIdx}{lineIdx}.(whatToPlotName).time;
+        
+            
+        ax=subplot(numel(applicableIndices),1,groupIdx); hold on;
+        l=plot(currentTimePoints,currentValuesToPlot,'Color',someColors(groupIdx,:),'LineWidth',2);
+        
+        % additionally, we could calculate a weighed average..
+        currentNumberOfValues = ...
+            collectedOutput.CV{groupIdx}{lineIdx}.(whatToPlotName).numberOfValues;
+        currentWeighedAverage = sum(currentValuesToPlot.*currentNumberOfValues)/sum(currentNumberOfValues);
+        
+        allWeighedAverages{groupIdx}(end+1) = currentWeighedAverage;
+    end
+    
+    myLegendLines(end+1) = l;
+    myAxes(end+1)=ax;       
     
 end
 
-figure(h1);
+ylabel('CV');
+xlabel('Time (hrs)');
 
-% Also give overview of the different conditions:
-disp(['===' 10 'FIGURE LEGEND']);
-for idIdx = 1:size(IDENTIFIERSTOPLOT,2)
-    if strcmp(dualOrSinglePlot,'SingleParameter')
-        disp([groupLabels(idIdx) ': ' IDENTIFIERSTOPLOT{idIdx}{:} ', ' parameterOfInterestList{paramIdx}]); 
-    elseif strcmp(dualOrSinglePlot,'CC')
-        disp([groupLabels(idIdx) ': ' IDENTIFIERSTOPLOT{idIdx}{:} ', ' parameterOfInterestDoubleCombinatorialList{paramIdx}]); 
-    end
+%% Now create legend from this figure
+
+labelNames = arrayfun(@(x) IDENTIFIERSTOPLOT{x}{:}, 1:numel(IDENTIFIERSTOPLOT),'UniformOutput', 0);
+legendHandle=legend(myLegendLines,labelNames,'Interpreter','None','Location','NorthOutside');
+
+saveLegendToImage(h1, legendHandle, myAxes);
+
+
+%{
+% Create separate legend plot
+hLegend=figure(); clf; hold on;
+myLegendLinesPrime=[];
+for groupIdx = 1:numel(applicableIndices)
+    lprime=plot([groupIdx,groupIdx],[1,2],'Color',someColors(groupIdx,:),'LineWidth',2);
+    myLegendLinesPrime(end+1)=lprime;    
 end
-disp('===');
+labelNames = arrayfun(@(x) IDENTIFIERSTOPLOT{x}{:}, 1:numel(IDENTIFIERSTOPLOT),'UniformOutput', 0);
+legendHandle=legend(myLegendLinesPrime,labelNames,'Interpreter','None','Location','NorthOutside');
+
+set(myLegendLinesPrime, 'visible', 'off');
+set(gca, 'visible', 'off');
+
+%hLegend=figure();
+%copyobj(legendHandle,hLegend);
+%}
+
+%% Now plot weighed averages
+
+someColors = linspecer(numel(applicableIndices));
+
+h1=figure; clf; hold on;
+for groupIdx = 1:numel(applicableIndices)
+    
+    bar(groupIdx,mean(allWeighedAveragesCV{groupIdx}),'FaceColor',[.7 .7 .7],'EdgeColor','none');
+    
+    plot(ones(1,numel(allWeighedAverages{groupIdx})).*groupIdx,...
+            allWeighedAverages{groupIdx},'o',...
+            'LineWidth',2,...
+            'Color',someColors(groupIdx,:));            
+end
+
+labelNames = arrayfun(@(x) IDENTIFIERSTOPLOT{x}{:}, 1:numel(IDENTIFIERSTOPLOT),'UniformOutput', 0);
+set(gca,'XTick',1:numel(applicableIndices),'XTickLabel',labelNames,'TickLabelInterpreter','None');
+xtickangle(90);
+
+ylabel('CV');
+
+%% Plot CV against growth rate
+
+h1=figure; clf; hold on;
+for groupIdx = 1:numel(applicableIndices)
+    
+    plot([collectedOutput.(currentParameterNameToCollect){groupIdx}{:}],...        
+         allWeighedAverages{groupIdx},...
+            'o',...
+            'LineWidth',2,...
+            'Color',someColors(groupIdx,:)); 
+         
+end
+
+xlabel('Growth rate [dbl/hr]');
+ylabel('CV');
 
 %% 
 
