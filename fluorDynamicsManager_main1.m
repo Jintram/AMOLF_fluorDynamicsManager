@@ -9,7 +9,13 @@ OUTPUTFOLDER = 'U:\THESIS\Thesis\ChapterX_CRP\Figures\matlabExport\';
 
 %% A flashy new script to handle all my data
 
-% Documentation
+% Important parameter names in this script are
+% - collectedOutput (stores output of multiple datasets into one struct)
+% - processedOutput (holds mean values and single values per group)
+% - fieldNameDictPerGroup (auxiliary output holds additional info per group per dataset)
+
+
+% Documentation (outdated?)
 % 
 % DATA STORAGE ===
 % The general idea is that there is an excel sheet that contains the names
@@ -48,9 +54,12 @@ OUTPUTFOLDER = 'U:\THESIS\Thesis\ChapterX_CRP\Figures\matlabExport\';
 %
 % 
 
+
 %% Load Excel file to get information on directories
 
-[ndata, theTextData, allXLSdata] = xlsread('\\storage01\data\AMOLF\users\wehrens\ZZ_EXPERIMENTAL_DATA\MICROSCOPE_OVERVIEW_AND_FIGURES\_projectfile_CRP.xlsx','dataset_list','B16:E200')
+masterExcelFileLocation = '\\storage01\data\AMOLF\users\wehrens\ZZ_EXPERIMENTAL_DATA\MICROSCOPE_OVERVIEW_AND_FIGURES\_projectfile_CRP.xlsx';
+
+[ndata, theTextData, allXLSdata] = xlsread(masterExcelFileLocation,'dataset_list','B16:E200')
 nrDataLines=size(allXLSdata,1);
 
 disp('Excel file with overview of data loaded..');
@@ -58,11 +67,11 @@ disp('Excel file with overview of data loaded..');
 %% Define which datasets should be plotted together and how
 % Sets of data that you want to plot are defined by a few key parameters, 
 
-%% 
+%% Execute any of these script before executing (the rest of) this script
+%{
 z_plotssets_plasmids1
-
-%% 
 z_plotssets_plasmids2
+%}
 
 %%
 
@@ -83,7 +92,7 @@ end
 
 fluorDynamicsManager_sub_runAnalyses
 
-%% Create grouped plots
+%% Create parameter that has indices of datasets grouped
 
 % First find out which lines of the xls file match the groups of plots that we want
 applicableIndices = {};
@@ -132,6 +141,9 @@ for groupIdx = 1:numel(applicableIndices)
             completeFigurePath = [theDirectoryWithThePlots figFilename];
             figurePaths.CV{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;    
         end
+        figurePaths.singleOrDual.CV=1;
+        figurePaths.singleOrDual.PDF=1;
+        figurePaths.singleOrDual.branches=1;
         
         
     end
@@ -141,12 +153,14 @@ disp('==');
 allParamString=cell2mat(arrayfun(@(x) [10 '- ' parameterOfInterestList{x}],1:numel(parameterOfInterestList),'UniformOutput',0));
 disp(['Parameters that have been defined in last run: ' allParamString]);
 
-allDualParamString=cell2mat(arrayfun(@(x) [10 '- ' parameterOfInterestDoubleCombinatorialList{x}],1:numel(parameterOfInterestDoubleCombinatorialList),'UniformOutput',0));
+allDualParamString=cell2mat(arrayfun(@(x) [10 '- ' parameterOfInterestDoubleCombinatorialListString{x}],1:numel(parameterOfInterestDoubleCombinatorialListString),'UniformOutput',0));
 disp(['Parameters pairs that have been defined in last run: ' allDualParamString]);
 disp('==');
 
 %% The same can be done for cross-correlations
 %figurePaths = struct;
+
+fieldNameDictPerGroup = {};
 
 for groupIdx = 1:numel(applicableIndices)
     for plotIdx = 1:numel(applicableIndices{groupIdx}) 
@@ -164,17 +178,21 @@ for groupIdx = 1:numel(applicableIndices)
         fluorDynamicsManager_sub_GetInterestingFieldsForThisDataSet
             % i.e. get parameterOfInterestList, parameterOfInterestDoubleCombinatorialList
         
-        for paramIdx = 1:numel(parameterOfInterestDoubleCombinatorialList)
+        % Save parameternames in convenient reference ("dictionary like") struct
+        fieldNameDictPerGroup{groupIdx}{plotIdx}.paramNames = paramNames;
+            
+        for paramIdx = 1:numel(parameterOfInterestDoubleCombinatorialListString)
             
             %%
             
             % Get the path                
-            figFilename = ['FIG_crosscorrs_' parameterOfInterestDoubleCombinatorialList{paramIdx} '_small.fig'];
+            figFilename = ['FIG_crosscorrs_' parameterOfInterestDoubleCombinatorialListString{paramIdx} '_small.fig'];
             completeFigurePath = [theDirectoryWithThePlots figFilename];
 
             % Organize this into the figure list
             figurePaths.CCs{paramIdx}{groupIdx}{plotIdx}=completeFigurePath;
-        
+            figurePaths.singleOrDual.CCs=2;
+            
         end
         
     end
@@ -182,27 +200,38 @@ end
 
 %% Then place the figures neatly tiled into a figure
 
-SINGLEORDUALNAMES = {'single','CC'};
-SINGLEPLOTTYPES   = {'branches' 'PDF' 'CVovertime'};
+% Let's go over the figurePaths
+namesOfDataGathered = fieldnames(figurePaths);
 
-% dual or single, i.e. single parameter, or comparison of two parameters
-% like for CC
-for singleOrDualPlot = 1:2  
-
-    if singleOrDualPlot==1
-        paramIndices = 1:numel(parameterOfInterestList);        
-    elseif singleOrDualPlot==2
-        paramIndices = 1:numel(parameterOfInterestDoubleCombinatorialList);                
-    else, error('Not recognized');
-    end
+for plotTypeIdx = 1:numel(namesOfDataGathered)
     
-    for paramIdx=paramIndices    
-
-        if singleOrDualPlot == 1
-            plotType = SINGLEPLOTTYPES{paramIdx};
-        elseif singleOrDualPlot == 2
-            plotType = 'CCs'; % CCs branches PDF CVovertime
+    % Note there's one field that's just for administration, skip that one
+    if strcmp(namesOfDataGathered{plotTypeIdx},'singleOrDual'), continue, end
+    
+    %% Make (multiple) combined plots
+    
+    plotType = namesOfDataGathered{plotTypeIdx};    
+    % Get info on whether this is single or dual parameter (set)
+    singleOrDual = figurePaths.singleOrDual.(plotType);
+    
+    % Note that the # of plots in figurePaths.(plotType) should match the
+    % parameter lists in either parameterOfInterestList or 
+    % parameterOfInterestDoubleCombinatorialList
+    if singleOrDual == 1
+        if numel(figurePaths.(plotType)) ~= numel(parameterOfInterestList)
+            error('Consistency check failed. Check integrity of figurePaths.');
         end
+    elseif singleOrDual == 2
+        if numel(figurePaths.(plotType)) ~= numel(parameterOfInterestDoubleCombinatorialListString)
+            error('Consistency check failed. Check integrity of figurePaths.');
+        end
+    end
+        
+    %
+    for paramIdx=1:numel(figurePaths.(plotType))        
+        % Note that paramIdx will map to field names in
+        % in parameterOfInterestList or 
+        % parameterOfInterestDoubleCombinatorialList
         
         %% Now create for each parameter (or combination of parameters) an overview plot        
 
@@ -233,16 +262,22 @@ for singleOrDualPlot = 1:2
 
                 %%
 
+                
                 % Determine which panel to use
                 panelColumn=panelColumn+1;
                 if panelColumn>xNrPanels
-                    panelColumn=0; panelLine=panelLine+1;
+                    panelColumn=1; panelLine=panelLine+1;
                 end
                 panelNr=(panelLine-1)*xNrPanels+panelColumn
 
                 % Get the path for the current figure
                 currentFigure = figurePaths.(plotType){paramIdx}{groupIdx}{plotIdx};
 
+                % Skip if figure doesn't exist
+                if ~exist(currentFigure,'file')
+                    
+                end
+                
                 % Load and get handle for current figure
                 hCurrentFig = openfig(currentFigure);
                 set(0,'CurrentFigure',hCurrentFig);
@@ -273,7 +308,7 @@ for singleOrDualPlot = 1:2
                 end
 
                 % Set limits to axes if desired        
-                if singleOrDualPlot == 1
+                if singleOrDual == 1
                     if exist('CUSTOMLIMITSPERPARAMGROUP','var')
                         if ~any(isnan(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(1:2)))
                             xlim(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(1:2));
@@ -282,7 +317,7 @@ for singleOrDualPlot = 1:2
                             ylim(CUSTOMLIMITSPERPARAMGROUP{paramIdx}(3:4));
                         end
                     end
-                elseif singleOrDualPlot == 2
+                elseif singleOrDual == 2
                     if exist('CUSTOMLIMITSPERPARAMGROUPCCS','var')            
                     if ~any(isnan(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(1:2)))
                         xlim(CUSTOMLIMITSPERPARAMGROUPCCS{paramIdx}(1:2));
@@ -302,33 +337,132 @@ for singleOrDualPlot = 1:2
         % Also give overview of the different conditions:
         disp(['===' 10 'FIGURE LEGEND']);
         for idIdx = 1:size(IDENTIFIERSTOPLOT,2)
-            if singleOrDualPlot == 1
+            if singleOrDual == 1
                 disp([groupLabels(idIdx) ': ' IDENTIFIERSTOPLOT{idIdx}{:} ', ' parameterOfInterestList{paramIdx}]); 
-            elseif singleOrDualPlot == 2
-                disp([groupLabels(idIdx) ': ' IDENTIFIERSTOPLOT{idIdx}{:} ', ' parameterOfInterestDoubleCombinatorialList{paramIdx}]); 
+            elseif singleOrDual == 2
+                disp([groupLabels(idIdx) ': ' IDENTIFIERSTOPLOT{idIdx}{:} ', ' parameterOfInterestDoubleCombinatorialListString{paramIdx}]); 
             end
         end
         disp('===');
 
-        %% Now save the plot
+        % Now give the plots some axes labels etc
+        if singleOrDual == 1
+            parameterName = parameterOfInterestList{paramIdx};
+        elseif singleOrDual == 2
+            parameterName  = parameterOfInterestDoubleCombinatorialListString{paramIdx};
+            parameterName1 = parameterOfInterestDoubleCombinatorialList{paramIdx}{1};
+            parameterName2 = parameterOfInterestDoubleCombinatorialList{paramIdx}{2};
+         end
         
-        if singleOrDualPlot == 1
-            plotName = parameterOfInterestList{paramIdx};
-        elseif singleOrDualPlot == 2
-            plotName = parameterOfInterestDoubleCombinatorialList{paramIdx};
+        % Find out human readable equivalent of (first) parameter name
+        if parameterName(1) == 'd'
+            humanReadableName = 'Fluorophore production (a.u./min)';
+            shortName = ['production ' upper(parameterName(2))];
+        elseif parameterName(1) == 'm'
+            humanReadableName = 'Growth rate (doublings/hr)';
+            shortName = 'growth';
+        elseif any(strcmp(upper(parameterName(1)),{'G','R','C','Y'}))        
+            humanReadableName = 'Fluorophore concentration (a.u./pixel)';
+            shortName = ['concentration ' upper(parameterName(1))];
         end
         
-        fileName = [GROUPNAME '_' plotType '_' ]
+        % And for second if applicable
+        if singleOrDual == 2
+            % Note that #1 is not necessary because we use the first letter
+            % of the string in which the two are combined
+            if parameterName2(1) == 'd'
+                humanReadableName2 = 'Fluorophore production (a.u./min)';
+                shortName2 = ['production ' upper(parameterName2(2))];
+            elseif parameterName2(1) == 'm'
+                humanReadableName2 = 'Growth rate (doublings/hr)';
+                shortName2 = 'growth';
+            elseif any(strcmp(upper(parameterName2(1)),{'G','R','C','Y'}))        
+                humanReadableName2 = 'Fluorophore concentration (a.u./pixel)';
+                shortName2 = ['concentration ' upper(parameterName2(1))];
+            end
+        end
         
-        saveas
+        % Now make corresponding plot names
+        if strcmp(plotType,'PDF')            
+            myTitle = '';
+            myxlabel= humanReadableName;
+            myylabel= 'Probability (normalized)';
+        elseif strcmp(plotType,'branches')
+            myTitle = '';
+            myxlabel= 'Time (minutes)';
+            myylabel= humanReadableName; 
+        elseif strcmp(plotType,'CV')
+            myTitle = '';
+            myxlabel= 'Time (minutes)';
+            myylabel= ['CV of ' shortName];
+        elseif strcmp(plotType,'CCs')
+            myTitle = '';
+            myxlabel=   'Delay (hrs)';
+            myylabel=   ['R(' shortName ',' shortName2 ')']; % XXX
+        end
+        subtitle_mw(myTitle,myxlabel,myylabel);
+        
+        %% Now save the plot               
+        
+        fileName = [GROUPNAME '_' plotType '_' parameterName];
+        
+        saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
+        saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+        saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
+        
+    end
+    
+end
+    
+disp('Section all done');
+
+%%%%%%%%%%%%%%%
+%SINGLEORDUALNAMES = {'single','CC'};
+%SINGLEPLOTTYPES   = {'branches' 'PDF' 'CVovertime'};
+%{
+% dual or single, i.e. single parameter, or comparison of two parameters
+% like for CC
+for singleOrDualPlot = 1:2  
+
+    if singleOrDualPlot==1
+        paramIndices = 1:numel(parameterOfInterestList);        
+    elseif singleOrDualPlot==2
+        paramIndices = 1:numel(parameterOfInterestDoubleCombinatorialList);                
+    else, error('Not recognized');
+    end
+    
+    for paramIdx=paramIndices    
+
+        if singleOrDualPlot == 1
+            plotType = SINGLEPLOTTYPES{paramIdx};
+        elseif singleOrDualPlot == 2
+            plotType = 'CCs'; % CCs branches PDF CVovertime
+        end
+        
+        %%%
+        % CODE WAS CUT HERE
+        %%%
         
     end
         
 end
+%}
 
-%% Now to compare some things that are only stored in the output parameters
+%% Now collect things from "output" struct that is saved per dataset.
+% Part 1 of processing
+% Put everything in collectedOutput
 
-PARAMETERNAMESTOCOLLECT = {'growthMean','CV'};
+PARAMETERNAMESTOCOLLECT = {'growthMean','rateMean','concentrationMean','CV','CC'};
+NAMESTOSTORETHEMWITH    = {'Growth','Production','Concentration','CV','CC'};
+    % Note 1: when changing the # of parameters that are collected here,
+    % note that they are all collected into a subplot overview, so be
+    % careful!
+    % Note 2: parameters are renamed according to NAMESTOSTORETHEMWITH and
+    % stored in collectedOutput. CV should not be renamed as that it is
+    % assumed later it'll still have that name. Names are also used for y
+    % plot labels later.
+
+collectedOutput=struct;
 
 for groupIdx = 1:numel(applicableIndices)
     for plotIdx = 1:numel(applicableIndices{groupIdx}) 
@@ -337,6 +471,8 @@ for groupIdx = 1:numel(applicableIndices)
         %% 
 
         clear output
+        
+        %collectedOutput.(currentParameterNameToCollect) = {{}};
 
         % Set appropriate index
         dataIdx =  applicableIndices{groupIdx}(plotIdx);
@@ -351,45 +487,78 @@ for groupIdx = 1:numel(applicableIndices)
 
             currentParameterNameToCollect=PARAMETERNAMESTOCOLLECT{paramIdx};
 
-            collectedOutput.(currentParameterNameToCollect){groupIdx}{plotIdx} = ...
-                output.(currentParameterNameToCollect);
+            if ~iscell(output.(currentParameterNameToCollect))
+                collectedOutput.(NAMESTOSTORETHEMWITH{paramIdx}){groupIdx}{plotIdx} = ...
+                    output.(currentParameterNameToCollect);
+            else                
+                    for cellIdx = 1:numel(output.(currentParameterNameToCollect))
+                        collectedOutput.([NAMESTOSTORETHEMWITH{paramIdx} '_' upper(fluorValues{cellIdx})]){groupIdx}{plotIdx} = ...
+                            output.(currentParameterNameToCollect){cellIdx};
+                    end
+            end
+            
         end
 
     end
 end
     
+disp('Went over ouput files and collected values.');
 
+%% Process data on simple fields and put in processed output
+% Part 2 of processing
+% Part 1/2 of putting things in processedOutput
 
-%% A simple direct plot for values
+processedOutput = struct;
 
-currentParameterNameToCollect='growthMean';
-plotType = 'mu'; % mu, CV; This will be used later for labeling of plot
+parametersToCollect = fieldnames(collectedOutput);
+%{'growthMean','rateMean','concentrationMean'};
 
-labelLocations = []; technicalReplicateNrs = [];
-allMeans = []; allSEMs = [];
-for groupIdx = 1:numel(applicableIndices)
-
-    % Get values
-    allCurrentValues = [collectedOutput.(currentParameterNameToCollect){groupIdx}{:}];
+for paramIdx = 1:numel(parametersToCollect)
     
-    % Mean, SEM, etc
-    currentMean = mean(allCurrentValues);
-    currentSEM = std(allCurrentValues)/sqrt(numel(allCurrentValues));
-    currentTechnicalReplicateNr = numel(allCurrentValues);
     
-    % Remove SEMs based on 1 replicate
-    if currentTechnicalReplicateNr==1
-        currentSEM=NaN;
+    %% if multiple cells are available then just label them _1, _2 etcetera    
+    
+    currentParameterNameToCollect=parametersToCollect{paramIdx};
+    
+    % Add an exclusions for things we want to analyze later and not here
+    % (Like CV, CC)
+    if any(cellfun(@(fieldName) strcmp(currentParameterNameToCollect,fieldName) ,{'CV','CC'}))
+        continue
     end
-        
-    labelLocations(end+1) = groupIdx;
-    technicalReplicateNrs(end+1) = currentTechnicalReplicateNr;
-    allMeans(end+1)= currentMean;
-    allSEMs(end+1) = currentSEM;
+    
+    %%
+    processedOutput.(currentParameterNameToCollect).labelLocations = []; 
+    processedOutput.(currentParameterNameToCollect).technicalReplicateNrs = [];
+    processedOutput.(currentParameterNameToCollect).allMeans = []; 
+    processedOutput.(currentParameterNameToCollect).allSEMs = [];
+    processedOutput.(currentParameterNameToCollect).allValues = {};
+    for groupIdx = 1:numel(applicableIndices)
+
+        % Get values
+        allCurrentValues = [collectedOutput.(currentParameterNameToCollect){groupIdx}{:}];
+            % Note that the last {:} collects data from the multiple plots
+            % in the group
+
+        % Mean, SEM, etc
+        currentMean = mean(allCurrentValues);
+        currentSEM = std(allCurrentValues)/sqrt(numel(allCurrentValues));
+        currentTechnicalReplicateNr = numel(allCurrentValues);
+
+        % Remove SEMs based on 1 replicate
+        if currentTechnicalReplicateNr==1
+            currentSEM=NaN;
+        end
+
+        processedOutput.(currentParameterNameToCollect).labelLocations(end+1) = groupIdx;
+        processedOutput.(currentParameterNameToCollect).technicalReplicateNrs(end+1) = currentTechnicalReplicateNr;
+        processedOutput.(currentParameterNameToCollect).allMeans(end+1)= currentMean;
+        processedOutput.(currentParameterNameToCollect).allSEMs(end+1) = currentSEM;
+        processedOutput.(currentParameterNameToCollect).allValues{end+1} = allCurrentValues;
+    end
+
 end
-
-myYlim=[0 max(allMeans)*1.1];
-
+    
+%{
 % print values on top
 for groupIdx = 1:numel(applicableIndices)
     myValueString=sprintf('%0.2f',allMeans(groupIdx));
@@ -403,83 +572,224 @@ xtickangle(90);
 
 ylabel('Growth rate [dbl/hr]');
 MW_makeplotlookbetter(10);
+%}
 
+%% Now process data for the slightly more complicated CV
+% Part 3 of processing
+% Part 2/2 of putting things in processedOutput
 
-%% Do the same as above for the slightly more complicated CV
+% note that nrFluorColors is determined by
+% fluorDynamicsManager_sub_GetInterestingFieldsForThisDataSet, and this
+% section assumes (1) this has been run before, and (2) they're all the
+% same for your datasets.
 
-searchTermForWhatToPlot = 'mu'; % e.g.: mu, dG, G5
-
-% Find the field name based on simple search term
-theFieldNames = fieldnames(collectedOutput.CV{1}{1});
-theFieldIdx   = find(arrayfun(@(x) any(strfind(theFieldNames{x},searchTermForWhatToPlot)), 1:numel(theFieldNames)));
-whatToPlotName = theFieldNames{theFieldIdx};
-
-labelLocations=[];
-technicalReplicateNrs = [];
-allMeans = []; allSEMs = [];
-for groupIdx = 1:numel(applicableIndices)
-
-    % Get values
-    allCurrentValues = arrayfun(@(x) collectedOutput.CV{groupIdx}{x}.(whatToPlotName).meanCoefficientOfVariationLast10, 1:numel(collectedOutput.CV{groupIdx}) );
-        % note that CV is determined in a complicated way
-    
-    % Mean, SEM, etc
-    currentMean = mean(allCurrentValues);
-    currentSEM = std(allCurrentValues)/sqrt(numel(allCurrentValues));
-    currentTechnicalReplicateNr = numel(allCurrentValues);
-    
-    % Remove SEMs based on 1 replicate
-    if currentTechnicalReplicateNr==1
-        currentSEM=NaN;
-    end
-    
-    % Store for later plotting
-    labelLocations(end+1) = groupIdx;
-    technicalReplicateNrs(end+1) = currentTechnicalReplicateNr;
-    allMeans(end+1)= currentMean;
-    allSEMs(end+1) = currentSEM;
+% set the search terms, e.g.: mu, dG, G5
+searchTermsForWhatToPlot = {'mu'};
+whatToPlotCommonName = {'growth'};
+for fluorIdx = 1:nrFluorColors
+    currentFluor = upper(fluorValues{fluorIdx});
+    searchTermsForWhatToPlot{end+1} = ['^d' currentFluor];
+    whatToPlotCommonName{end+1} = ['production_' currentFluor];
+    searchTermsForWhatToPlot{end+1} = ['^' currentFluor '6']; 
+    whatToPlotCommonName{end+1} = ['concentration_' currentFluor];
 end
 
+% Now gather all the CVs per parameter
+for paramIdx=1:numel(searchTermsForWhatToPlot)
+    
+    currentSearchTermForWhatToPlot = searchTermsForWhatToPlot{paramIdx};
+    currentwhatToPlotCommonName = whatToPlotCommonName{paramIdx};
+
+    currentFieldToMake = ['CV_' currentwhatToPlotCommonName];
+    
+    processedOutput.(currentFieldToMake).labelLocations=[];
+    processedOutput.(currentFieldToMake).technicalReplicateNrs = [];
+    processedOutput.(currentFieldToMake).allMeans = []; 
+    processedOutput.(currentFieldToMake).allSEMs = [];
+    processedOutput.(currentFieldToMake).allValues = {};
+    for groupIdx = 1:numel(applicableIndices)
+
+        % Gather the values    
+        allCurrentValues = [];
+        for plotIdx=1:numel(collectedOutput.CV{groupIdx})
+            % First determine how the value is called here..
+            theFieldNames = fieldnames(collectedOutput.CV{groupIdx}{plotIdx});
+            theFieldIdx   = find(arrayfun(@(x) any(regexp(theFieldNames{x},currentSearchTermForWhatToPlot)), 1:numel(theFieldNames)));
+            whatToPlotName = theFieldNames{theFieldIdx};
+            
+            % Either take the mean of the last 10 values            
+            % allCurrentValues(end+1) = collectedOutput.CV{groupIdx}{plotIdx}.(whatToPlotName).meanCoefficientOfVariationLast10;
+            
+            % Or calculate the weighed average
+            %times  = collectedOutput.CV{groupIdx}{plotIdx}.(whatToPlotName).time; 
+            values = collectedOutput.CV{groupIdx}{plotIdx}.(whatToPlotName).coefficientOfVariationOverTime;
+            nrvalues = collectedOutput.CV{groupIdx}{plotIdx}.(whatToPlotName).numberOfValues;
+            allCurrentValues(end+1) = sum(values.*nrvalues)/sum(nrvalues);
+        end
+        %{ 
+        % Get values assuming all fields have the same name
+        allCurrentValues = arrayfun(@(x) collectedOutput.CV{groupIdx}{x}.(whatToPlotName).meanCoefficientOfVariationLast10, 1:numel(collectedOutput.CV{groupIdx}) );
+            % note that CV is determined in a complicated way
+        %}
+
+        % Mean, SEM, etc
+        currentMean = mean(allCurrentValues);
+        currentSEM = std(allCurrentValues)/sqrt(numel(allCurrentValues));
+        currentTechnicalReplicateNr = numel(allCurrentValues);
+
+        % Remove SEMs based on 1 replicate
+        if currentTechnicalReplicateNr==1
+            currentSEM=NaN;
+        end
+
+        % Store for later plotting    
+        processedOutput.(currentFieldToMake).labelLocations(end+1) = groupIdx;
+        processedOutput.(currentFieldToMake).technicalReplicateNrs(end+1) = currentTechnicalReplicateNr;    
+        processedOutput.(currentFieldToMake).allMeans(end+1)= currentMean;
+        processedOutput.(currentFieldToMake).allSEMs(end+1) = currentSEM;
+        processedOutput.(currentFieldToMake).allValues{end+1} = allCurrentValues;
+    end
+
+end
+    
 plotType = 'CV'; % mu, CV
 
+
+%{
+% Find the field name based on simple search term
+theFieldNames = fieldnames(collectedOutput.CV{1}{1});
+%theFieldIdx   = find(arrayfun(@(x) any(strfind(theFieldNames{x},searchTermForWhatToPlot)), 1:numel(theFieldNames)));
+theFieldIdx   = find(arrayfun(@(x) any(regexp(theFieldNames{x},currentSearchTermForWhatToPlot)), 1:numel(theFieldNames)));
+whatToPlotName = theFieldNames{theFieldIdx};
+%}
+
 %% General way of plotting data per group..
-% TODO: maybe make a function out of this?
+% Now plot (part 4)
 
 %plotType = 'CV'; % mu, CV
 
+someColors = linspecer(numel(IDENTIFIERSTOPLOT));
+
+myOverviewParametersToPlot = fieldnames(processedOutput);
+
 h1=figure; clf; hold on;
-bar(1:numel(applicableIndices), allMeans,'FaceColor',[.7 .7 .7]);
-errorbar(1:numel(applicableIndices), allMeans, allSEMs,'k','LineStyle','none','LineWidth',2);
 
-myYlim=[0 max(allMeans+allSEMs)*1.1];
-
-% print values on top
-for groupIdx = 1:numel(applicableIndices)
-    myValueString=sprintf('%0.2f',allMeans(groupIdx));
-    text(groupIdx, myYlim(2),myValueString,'HorizontalAlignment','center');
-end
-
-% xtick labels
-labelNames = arrayfun(@(x) IDENTIFIERSTOPLOT{x}{:}, 1:numel(IDENTIFIERSTOPLOT),'UniformOutput', 0);
-set(gca,'XTick',labelLocations,'XTickLabel',labelNames,'TickLabelInterpreter','None');
-xtickangle(90);
-
-MW_makeplotlookbetter(10);
-
-if strcmp(plotType,'mu')
-    ylabel('Growth rate [dbl/hr]');
-elseif strcmp(plotType,'CV')
-    ylabel('CV');
+numelMyOverviewParametersToPlot=numel(myOverviewParametersToPlot);
+if nrFluorColors==1
+    subplotXNr=3;
+    sizeY=6.4;
+    FontSize=10;
+    myLineWidth=2;
 else
-    ylabel('[unkown parameter]');
+    subplotXNr=3;
+    sizeY=4.5;
+    %sizeY=4.8;
+    FontSize=8;
+    myLineWidth=1;
+end
+subplotYNr = ceil(numelMyOverviewParametersToPlot/subplotXNr);
+for paramIdx = 1:numelMyOverviewParametersToPlot
+
+    %
+            
+    plotType = myOverviewParametersToPlot{paramIdx};
+        
+    % Now make an overview subplot
+    %subtightplot(subplotYNr,3,paramIdx,0.01,0,0)
+    if numel(IDENTIFIERSTOPLOT)>4  
+        subtightplot(subplotYNr,subplotXNr,paramIdx,[0.2,0.05],[0.2 0.05],[0.1 0.1]); hold on;
+    elseif nrFluorColors>1
+        subtightplot(subplotYNr,subplotXNr,paramIdx,[0.12,0.12],[0.10 0.05],[0.1 0.1]); hold on;
+    else
+        subplot(subplotYNr,subplotXNr,paramIdx); hold on;
+    end
+    
+    bar(1:numel(applicableIndices), processedOutput.(plotType).allMeans,'FaceColor',[.7 .7 .7]);
+    %errorbar(1:numel(applicableIndices), allMeans, allSEMs,'k','LineStyle','none','LineWidth',2);
+
+    myYlim=[0 max([processedOutput.(plotType).allMeans+processedOutput.(plotType).allSEMs, [processedOutput.(plotType).allValues{:}]])*2];
+
+    % put printed values and single datapoints
+    for groupIdx = 1:numel(applicableIndices)
+
+        % single data points
+        plot(ones(1,numel(processedOutput.(plotType).allValues{groupIdx})).*groupIdx,...
+                processedOutput.(plotType).allValues{groupIdx},'o',...
+                'LineWidth',myLineWidth,...
+                'Color',someColors(groupIdx,:));%,...
+                %'MarkerFaceColor',someColors(groupIdx,:)); 
+
+        % write values on top
+        %myValueString=sprintf('%0.2f',processedOutput.(plotType).allMeans(groupIdx));
+        myValueString=sprintf('%0.2g',processedOutput.(plotType).allMeans(groupIdx));
+        
+        % Horizontal text at the top of the plot
+        %text(groupIdx, myYlim(2),myValueString,'HorizontalAlignment','center');        
+        
+        % Vertical text at the bottom of each bar (and values)
+        %yvalue = max([processedOutput.(plotType).allMeans(groupIdx), processedOutput.(plotType).allValues{groupIdx}]);        
+        yvalue  = myYlim(2)*0.55;
+        text(groupIdx, yvalue,myValueString,'HorizontalAlignment','left','Rotation',90);
+    end
+
+    % cosmetics
+    ylim(myYlim);
+    
+    % get xtick labels
+    if exist('HUMANREADABLENAMESFORGROUPS','var')
+        % simply HUMANREADABLENAMESFORGROUPS, but replace comma for enter
+        %labelNames = cellfun(@(value) strrep(value,', ',10),HUMANREADABLENAMESFORGROUPS,'UniformOutput',0);
+        labelNames = HUMANREADABLENAMESFORGROUPS;
+    else
+        labelNames = arrayfun(@(x) IDENTIFIERSTOPLOT{x}{:}, 1:numel(IDENTIFIERSTOPLOT),'UniformOutput', 0);
+    end
+    % set xtick labels
+    set(gca,'XTick',processedOutput.(plotType).labelLocations,'XTickLabel',labelNames,'TickLabelInterpreter','None');
+    xtickangle(90);
+
+    MW_makeplotlookbetter(10);
+
+    if strcmp(plotType,'mu')
+        ylabel('Growth rate [dbl/hr]');
+    elseif strcmp(plotType,plotType)
+        ylabel(strrep(plotType,'_',' '));%,'Interpreter','none');
+    else
+        ylabel('[unkown parameter]');
+    end
+
+    MW_makeplotlookbetter(FontSize,[],[12.8 subplotYNr*sizeY]/2,1)
+    
 end
 
+
+fileName = [GROUPNAME '_overview_means'];
+
+saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
+saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
 
 %plotting CV
 %output.CV.(theFieldNames).meanCoefficientOfVariationLast10
 
+%% Make a text files as base for caption
+
+fileID = fopen([OUTPUTFOLDER 'caption_' GROUPNAME '.txt'],'w');
+
+fprintf(fileID,['===' 10 'FIGURE LEGEND' 10]);
+for idIdx = 1:size(IDENTIFIERSTOPLOT,2)
+    if singleOrDual == 1
+        fprintf(fileID,[groupLabels(idIdx) ': ' IDENTIFIERSTOPLOT{idIdx}{:} ', ' parameterOfInterestList{paramIdx} 10]); 
+    elseif singleOrDual == 2
+        fprintf(fileID,[groupLabels(idIdx) ': ' IDENTIFIERSTOPLOT{idIdx}{:} ', ' parameterOfInterestDoubleCombinatorialListString{paramIdx} 10]); 
+    end
+end
+fprintf(fileID,['===' 10]);
+
+fclose(fileID);
+
 %% Plot CV lines separately but color for group
 
+%{
 searchTermForWhatToPlot = 'mu'; % e.g.: mu, dG, G5
 
 % Find the field name based on simple search term
@@ -496,10 +806,10 @@ someColors = linspecer(numel(applicableIndices));
 labelLocations = []; technicalReplicateNrs = [];
 allMeans = []; allSEMs = [];
 myLegendLines = []; myAxes = [];
-allWeighedAverages={};
+allWeighedAveragesCV={};
 for groupIdx = 1:numel(applicableIndices)
 
-    allWeighedAverages{groupIdx}=[];
+    allWeighedAveragesCV{groupIdx}=[];
     for lineIdx=1:numel(collectedOutput.CV{groupIdx})
     
         % Get values
@@ -517,7 +827,7 @@ for groupIdx = 1:numel(applicableIndices)
             collectedOutput.CV{groupIdx}{lineIdx}.(whatToPlotName).numberOfValues;
         currentWeighedAverage = sum(currentValuesToPlot.*currentNumberOfValues)/sum(currentNumberOfValues);
         
-        allWeighedAverages{groupIdx}(end+1) = currentWeighedAverage;
+        allWeighedAveragesCV{groupIdx}(end+1) = currentWeighedAverage;
     end
     
     myLegendLines(end+1) = l;
@@ -525,11 +835,13 @@ for groupIdx = 1:numel(applicableIndices)
     
 end
 
-ylabel('CV');
+ylabel(plotType);
 xlabel('Time (hrs)');
+%}
 
 %% Now create legend from this figure
 
+%{
 labelNames = arrayfun(@(x) IDENTIFIERSTOPLOT{x}{:}, 1:numel(IDENTIFIERSTOPLOT),'UniformOutput', 0);
 legendHandle=legend(myLegendLines,labelNames,'Interpreter','None','Location','NorthOutside');
 
@@ -553,8 +865,11 @@ set(gca, 'visible', 'off');
 %hLegend=figure();
 %copyobj(legendHandle,hLegend);
 %}
+%}
 
 %% Now plot weighed averages
+
+%{
 
 someColors = linspecer(numel(applicableIndices));
 
@@ -563,8 +878,8 @@ for groupIdx = 1:numel(applicableIndices)
     
     bar(groupIdx,mean(allWeighedAveragesCV{groupIdx}),'FaceColor',[.7 .7 .7],'EdgeColor','none');
     
-    plot(ones(1,numel(allWeighedAverages{groupIdx})).*groupIdx,...
-            allWeighedAverages{groupIdx},'o',...
+    plot(ones(1,numel(allWeighedAveragesCV{groupIdx})).*groupIdx,...
+            allWeighedAveragesCV{groupIdx},'o',...
             'LineWidth',2,...
             'Color',someColors(groupIdx,:));            
 end
@@ -573,7 +888,9 @@ labelNames = arrayfun(@(x) IDENTIFIERSTOPLOT{x}{:}, 1:numel(IDENTIFIERSTOPLOT),'
 set(gca,'XTick',1:numel(applicableIndices),'XTickLabel',labelNames,'TickLabelInterpreter','None');
 xtickangle(90);
 
-ylabel('CV');
+ylabel(plotType);
+
+%}
 
 %% Plot CV against growth rate
 
@@ -581,7 +898,7 @@ h1=figure; clf; hold on;
 for groupIdx = 1:numel(applicableIndices)
     
     plot([collectedOutput.(currentParameterNameToCollect){groupIdx}{:}],...        
-         allWeighedAverages{groupIdx},...
+         allWeighedAveragesCV{groupIdx},...
             'o',...
             'LineWidth',2,...
             'Color',someColors(groupIdx,:)); 
@@ -591,6 +908,160 @@ end
 xlabel('Growth rate [dbl/hr]');
 ylabel('CV');
 
+
+%% Now plot combined CCs, both p-mu and C-mu, for both fluor colors
+
+nrOfGroups = numel(IDENTIFIERSTOPLOT);
+colorsPerGroup = linspecer(nrOfGroups);
+
+groupLabels='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+set_fieldNames = ...
+    {{'concentration','muWithConcentration'},...
+     {'rate','muWithRate'}};        
+set_linecolors = ...
+                {colorsPerGroup,
+                zeros(nrOfGroups,3)};
+
+for fluorIdx = 1:nrFluorColors
+    %%
+    h1=figure(); clf; 
+    
+    set_fluorIndices = {[fluorIdx,fluorIdx],...
+                        [fluorIdx,fluorIdx]};              
+
+    totalNrPanels=nrOfGroups;
+    xNrPanels = ceil(sqrt(totalNrPanels));
+    yNrPanels = sum(ceil(totalNrPanels./xNrPanels));
+
+    meanLineHandleCollection=cell(1,nrOfGroups);
+    for setIdx = 1:numel(set_fieldNames)
+
+        fieldNames = set_fieldNames{setIdx};
+        fluorIndices = set_fluorIndices{setIdx};
+        linecolors = set_linecolors{setIdx};
+
+        for groupIdx = 1:nrOfGroups
+
+            subplot(xNrPanels,yNrPanels,groupIdx); hold on;
+
+            collectedCCs = ...
+                    collectedOutput.CC{groupIdx};
+            fieldNameDict = ...
+                    fieldNameDictPerGroupPerGroup{groupIdx};
+
+            [meanLineHandle,individualLineHandles] = ...
+                fluorDynamicsManager_sub_meanCCforGroup(h1,collectedCCs,fieldNameDict,fieldNames,fluorIndices,linecolors(groupIdx,:))
+
+            meanLineHandleCollection{groupIdx}(end+1) = meanLineHandle;
+
+        end    
+
+    end
+
+    % cosmetics
+    sizeY = 19.2/6;
+    for groupIdx = 1:nrOfGroups
+        subplot(xNrPanels,yNrPanels,groupIdx);    
+
+        uistack(meanLineHandleCollection{groupIdx},'top');        
+
+        t=title([groupLabels(groupIdx) ': ' HUMANREADABLENAMESFORGROUPS{groupIdx}]);
+        set(t, 'horizontalAlignment', 'left');
+        set(t, 'units', 'normalized');
+        t1 = get(t, 'position');
+        %set(t, 'position', [0 t1(2) t1(3)]);
+        set(t, 'position', [0-.1 t1(2) t1(3)]); % This was a bit trial and error
+
+        subtitle_mw('','Delay (hrs)','Correlation')
+
+        MW_makeplotlookbetter(10,[],[12.8 groupIdx*sizeY]/2,1)
+    end
+
+    fileName = [GROUPNAME '_overview_correlations_CmuPmu_' upper(fluorValues{fluorIdx})];
+
+    saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
+    saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
+    saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+    
+end
+
+%% Now plot combined autocorrelations, combine for groups, split for params
+
+nrOfGroups = numel(IDENTIFIERSTOPLOT);
+colorsPerGroup = linspecer(nrOfGroups);
+
+groupLabels='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+set_fieldNames = ...
+    {{'concentration','muWithConcentration'},...
+     {'rate','muWithRate'}};        
+set_linecolors = ...
+                {colorsPerGroup,
+                zeros(nrOfGroups,3)};
+
+for fluorIdx = 1:nrFluorColors
+    %%
+    h1=figure(); clf; 
+    
+    set_fluorIndices = {[fluorIdx,fluorIdx],...
+                        [fluorIdx,fluorIdx]};              
+
+    totalNrPanels=nrOfGroups;
+    xNrPanels = ceil(sqrt(totalNrPanels));
+    yNrPanels = sum(ceil(totalNrPanels./xNrPanels));
+
+    meanLineHandleCollection=cell(1,nrOfGroups);
+    for setIdx = 1:numel(set_fieldNames)
+
+        fieldNames = set_fieldNames{setIdx};
+        fluorIndices = set_fluorIndices{setIdx};
+        linecolors = set_linecolors{setIdx};
+
+        for groupIdx = 1:nrOfGroups
+
+            subplot(xNrPanels,yNrPanels,groupIdx); hold on;
+
+            collectedCCs = ...
+                    collectedOutput.CC{groupIdx};
+            fieldNameDict = ...
+                    fieldNameDictPerGroupPerGroup{groupIdx};
+
+            [meanLineHandle,individualLineHandles] = ...
+                fluorDynamicsManager_sub_meanCCforGroup(h1,collectedCCs,fieldNameDict,fieldNames,fluorIndices,linecolors(groupIdx,:))
+
+            meanLineHandleCollection{groupIdx}(end+1) = meanLineHandle;
+
+        end    
+
+    end
+
+    % cosmetics
+    sizeY = 19.2/6;
+    for groupIdx = 1:nrOfGroups
+        subplot(xNrPanels,yNrPanels,groupIdx);    
+
+        uistack(meanLineHandleCollection{groupIdx},'top');        
+
+        t=title([groupLabels(groupIdx) ': ' HUMANREADABLENAMESFORGROUPS{groupIdx}]);
+        set(t, 'horizontalAlignment', 'left');
+        set(t, 'units', 'normalized');
+        t1 = get(t, 'position');
+        %set(t, 'position', [0 t1(2) t1(3)]);
+        set(t, 'position', [0-.1 t1(2) t1(3)]); % This was a bit trial and error
+
+        subtitle_mw('','Delay (hrs)','Correlation')
+
+        MW_makeplotlookbetter(10,[],[12.8 groupIdx*sizeY]/2,1)
+    end
+
+    fileName = [GROUPNAME '_overview_correlations_CmuPmu_' upper(fluorValues{fluorIdx})];
+
+    saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
+    saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
+    saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+    
+end
 %% 
 
 %{

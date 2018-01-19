@@ -25,6 +25,7 @@ for fluorIdx = 1:nrFluorColors
     currentMuFieldNameDerivativeName = strrep(ourSettings.muFieldNameDerivative,'X',upper(currentFluor));
 
     currentFluorExtrapolatedAtRateTimeName = [ourSettings.fluorFieldName '_at_d' upper(currentFluor)];
+    currentFluorExtrapolatedAtRateTimeName = strrep(currentFluorExtrapolatedAtRateTimeName,'X',upper(currentFluor));
     
     % Now create the entrances for parameters that relate to fluor
     % measurements   
@@ -38,23 +39,23 @@ for fluorIdx = 1:nrFluorColors
     
     % R(concentration, growth)
     parameterOfInterestDoubleCombinatorialList{end+1} = ...        
-        [currentFluorFieldName '_' muFieldName];
+        {currentFluorFieldName , muFieldName};
     
     % R(rate, growth)
     parameterOfInterestDoubleCombinatorialList{end+1} = ...
-        [currentRateFieldName '_' currentMuFieldNameDerivativeName];
+        {currentRateFieldName , currentMuFieldNameDerivativeName};
     
     % R(Y, Y), i.e. autocorrelation functions, order: mu, C, p.
     parameterOfInterestDoubleCombinatorialList{end+1} = ...
-        [muFieldName '_' muFieldName];
+        {muFieldName , muFieldName};
     parameterOfInterestDoubleCombinatorialList{end+1} = ...
-        [currentFluorFieldName '_' currentFluorFieldName];
+        {currentFluorFieldName , currentFluorFieldName};
     parameterOfInterestDoubleCombinatorialList{end+1} = ...
-        [currentRateFieldName '_' currentRateFieldName];
+        {currentRateFieldName , currentRateFieldName};
     
-    % R(prod, E)
+    % R(E,prod)
     parameterOfInterestDoubleCombinatorialList{end+1} = ...   
-        [currentRateFieldName '_' currentFluorExtrapolatedAtRateTimeName];
+        {currentFluorExtrapolatedAtRateTimeName, currentRateFieldName};
     
     % Fluors against each other
     for fluorIdx2 = (fluorIdx+1):nrFluorColors
@@ -66,22 +67,46 @@ for fluorIdx = 1:nrFluorColors
             
         % R(C_i,C_j)
         parameterOfInterestDoubleCombinatorialList{end+1} = ...
-            [currentFluorFieldName '_' currentFluorFieldName2];
+            {currentFluorFieldName , currentFluorFieldName2};
         
         % R(p_i,p_j)
         parameterOfInterestDoubleCombinatorialList{end+1} = ...
-            [currentRateFieldName '_' currentRateFieldName2];
+            {currentRateFieldName , currentRateFieldName2};
     end
     % ==============
     
+    % Also supply a simple naming scheme
+    paramNames.muWithConcentration{fluorIdx} = ...
+                                          muFieldName; 
+    paramNames.rate{fluorIdx}           = currentRateFieldName;
+    paramNames.concentration{fluorIdx}  = currentFluorFieldName;
+    paramNames.muWithRate{fluorIdx}     = currentMuFieldNameDerivativeName;
+    paramNames.fluors{fluorIdx}         = currentFluor;
+    paramNames.concentrationWithRate{fluorIdx} = ...
+                                          currentFluorExtrapolatedAtRateTimeName;
+        % Note that muFieldName is implied to be at Concentration, hence
+        % the paramNames struct is called muWithConcentration.
+    
+    
 end    
+  
+% Convert double list to strings
+parameterOfInterestDoubleCombinatorialListString={};
+for paramIdx = 1:numel(parameterOfInterestDoubleCombinatorialList)
    
+    parameterOfInterestDoubleCombinatorialListString{paramIdx} = ...
+        [ parameterOfInterestDoubleCombinatorialList{paramIdx}{1} '_' ...
+          parameterOfInterestDoubleCombinatorialList{paramIdx}{2} ];
+    
+end
 
+%{
 for fluorIdx = 1:nrFluorColors
     
     
 
 end
+%}
     %{
 parameterOfInterestDoubleCombinatorialList={};
 for ii = 1:numel(parameterOfInterestList)
