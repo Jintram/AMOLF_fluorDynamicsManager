@@ -27,7 +27,7 @@ LINEWIDTH = 1;
 FONTSIZE=15;
 SHOWLEGEND=0;
 
-% Make the figure
+% Focus on given figure
 set(0,'CurrentFigure',h1);
 
         
@@ -72,7 +72,15 @@ else
 end
 
 xlim(myxlimvalues);    
-ylim([-1,1]);
+
+if strcmp(fieldNames{1},fieldNames{2})
+    % autocorrelation limits
+    ylim([-.5 1]);
+else
+    % correlation limits
+    ylim([-.5 .5]);
+end
+
 % Plot axes
 plot(myxlimvalues,[0,0],'k-');
 plot([0,0],[-1,1],'-k');

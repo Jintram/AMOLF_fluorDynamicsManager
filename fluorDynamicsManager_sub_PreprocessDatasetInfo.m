@@ -17,6 +17,7 @@
 % movieName
 % dataFileName
 % theDirectoryWithThePlots
+% dateDir
 % ... (maybe some more that I forgot to mention)
 
 

@@ -71,6 +71,8 @@ disp('Excel file with overview of data loaded..');
 %{
 z_plotssets_plasmids1
 z_plotssets_plasmids2
+z_plotssets_chromoCRPs70_1
+z_plotssets_chromo_misc
 %}
 
 %%
@@ -894,11 +896,13 @@ ylabel(plotType);
 
 %% Plot CV against growth rate
 
+try
+    
 h1=figure; clf; hold on;
 for groupIdx = 1:numel(applicableIndices)
     
     plot([collectedOutput.(currentParameterNameToCollect){groupIdx}{:}],...        
-         allWeighedAveragesCV{groupIdx},...
+         collectedOutput.CV{groupIdx}{:},...
             'o',...
             'LineWidth',2,...
             'Color',someColors(groupIdx,:)); 
@@ -908,6 +912,12 @@ end
 xlabel('Growth rate [dbl/hr]');
 ylabel('CV');
 
+catch
+    
+    warning('Note: this does not work since there are multiple CV fields');
+    % try processedOutput, but think about what to plot
+    
+end
 
 %% Now plot combined CCs, both p-mu and C-mu, for both fluor colors
 
@@ -931,9 +941,10 @@ for fluorIdx = 1:nrFluorColors
                         [fluorIdx,fluorIdx]};              
 
     totalNrPanels=nrOfGroups;
-    xNrPanels = ceil(sqrt(totalNrPanels));
-    yNrPanels = sum(ceil(totalNrPanels./xNrPanels));
-
+    yNrPanels = ceil(sqrt(totalNrPanels));
+    xNrPanels = ceil(totalNrPanels./yNrPanels);
+    if xNrPanels==1, xNrPanels=yNrPanels; yNrPanels=1; end % avoid one ugly outcome
+        
     meanLineHandleCollection=cell(1,nrOfGroups);
     for setIdx = 1:numel(set_fieldNames)
 
@@ -943,12 +954,12 @@ for fluorIdx = 1:nrFluorColors
 
         for groupIdx = 1:nrOfGroups
 
-            subplot(xNrPanels,yNrPanels,groupIdx); hold on;
+            subplot(yNrPanels,xNrPanels,groupIdx); hold on;
 
             collectedCCs = ...
                     collectedOutput.CC{groupIdx};
             fieldNameDict = ...
-                    fieldNameDictPerGroupPerGroup{groupIdx};
+                    fieldNameDictPerGroup{groupIdx};
 
             [meanLineHandle,individualLineHandles] = ...
                 fluorDynamicsManager_sub_meanCCforGroup(h1,collectedCCs,fieldNameDict,fieldNames,fluorIndices,linecolors(groupIdx,:))
@@ -960,9 +971,9 @@ for fluorIdx = 1:nrFluorColors
     end
 
     % cosmetics
-    sizeY = 19.2/6;
+    sizeY = 19.2/3;
     for groupIdx = 1:nrOfGroups
-        subplot(xNrPanels,yNrPanels,groupIdx);    
+        subplot(yNrPanels,xNrPanels,groupIdx);    
 
         uistack(meanLineHandleCollection{groupIdx},'top');        
 
@@ -975,7 +986,7 @@ for fluorIdx = 1:nrFluorColors
 
         subtitle_mw('','Delay (hrs)','Correlation')
 
-        MW_makeplotlookbetter(10,[],[12.8 groupIdx*sizeY]/2,1)
+        MW_makeplotlookbetter(10,[],[12.8 yNrPanels*sizeY]/2,1)
     end
 
     fileName = [GROUPNAME '_overview_correlations_CmuPmu_' upper(fluorValues{fluorIdx})];
@@ -993,75 +1004,212 @@ colorsPerGroup = linspecer(nrOfGroups);
 
 groupLabels='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
+% sets of input in cells
 set_fieldNames = ...
-    {{'concentration','muWithConcentration'},...
-     {'rate','muWithRate'}};        
-set_linecolors = ...
-                {colorsPerGroup,
-                zeros(nrOfGroups,3)};
-
+    {{'muWithConcentration','muWithConcentration'}}
+set_hrnames = {'Growth rate'};
+set_fluorIndices = {[fluorIdx,fluorIdx]};                        
 for fluorIdx = 1:nrFluorColors
+     set_fieldNames{end+1} = {'concentration','concentration'};     
+     set_hrnames{end+1} = ['Concentration ' upper(fluorValues{fluorIdx})];
+     set_fluorIndices{end+1} = [fluorIdx,fluorIdx]; 
+     
+     set_fieldNames{end+1} = {'rate','rate'};               
+     set_hrnames{end+1} = ['Production ' upper(fluorValues{fluorIdx})];
+     set_fluorIndices{end+1} = [fluorIdx,fluorIdx]; 
+end
+
+
+totalNrPanels=numel(set_fieldNames);
+xNrPanels = ceil(sqrt(totalNrPanels));
+yNrPanels = sum(ceil(totalNrPanels./xNrPanels));         
+
+% Plot the figure
+h1=figure(); clf; 
+
+meanLineHandleCollection=cell(1,numel(set_fieldNames));
+myAxes=[];
+for setIdx = 1:numel(set_fieldNames)
+
     %%
-    h1=figure(); clf; 
-    
-    set_fluorIndices = {[fluorIdx,fluorIdx],...
-                        [fluorIdx,fluorIdx]};              
+    fieldNames = set_fieldNames{setIdx};
+    fluorIndices = set_fluorIndices{setIdx};
 
-    totalNrPanels=nrOfGroups;
-    xNrPanels = ceil(sqrt(totalNrPanels));
-    yNrPanels = sum(ceil(totalNrPanels./xNrPanels));
-
-    meanLineHandleCollection=cell(1,nrOfGroups);
-    for setIdx = 1:numel(set_fieldNames)
-
-        fieldNames = set_fieldNames{setIdx};
-        fluorIndices = set_fluorIndices{setIdx};
-        linecolors = set_linecolors{setIdx};
-
-        for groupIdx = 1:nrOfGroups
-
-            subplot(xNrPanels,yNrPanels,groupIdx); hold on;
-
-            collectedCCs = ...
-                    collectedOutput.CC{groupIdx};
-            fieldNameDict = ...
-                    fieldNameDictPerGroupPerGroup{groupIdx};
-
-            [meanLineHandle,individualLineHandles] = ...
-                fluorDynamicsManager_sub_meanCCforGroup(h1,collectedCCs,fieldNameDict,fieldNames,fluorIndices,linecolors(groupIdx,:))
-
-            meanLineHandleCollection{groupIdx}(end+1) = meanLineHandle;
-
-        end    
-
-    end
-
-    % cosmetics
-    sizeY = 19.2/6;
     for groupIdx = 1:nrOfGroups
-        subplot(xNrPanels,yNrPanels,groupIdx);    
 
-        uistack(meanLineHandleCollection{groupIdx},'top');        
+        myAxes(end+1) = subplot(xNrPanels,yNrPanels,setIdx); hold on;
 
-        t=title([groupLabels(groupIdx) ': ' HUMANREADABLENAMESFORGROUPS{groupIdx}]);
-        set(t, 'horizontalAlignment', 'left');
-        set(t, 'units', 'normalized');
-        t1 = get(t, 'position');
-        %set(t, 'position', [0 t1(2) t1(3)]);
-        set(t, 'position', [0-.1 t1(2) t1(3)]); % This was a bit trial and error
+        collectedCCs = ...
+                collectedOutput.CC{groupIdx};
+        fieldNameDict = ...
+                fieldNameDictPerGroup{groupIdx};
 
-        subtitle_mw('','Delay (hrs)','Correlation')
+        [meanLineHandle,individualLineHandles] = ...
+            fluorDynamicsManager_sub_meanCCforGroup(h1,collectedCCs,fieldNameDict,fieldNames,fluorIndices,colorsPerGroup(groupIdx,:))
 
-        MW_makeplotlookbetter(10,[],[12.8 groupIdx*sizeY]/2,1)
+        meanLineHandleCollection{setIdx}(end+1) = meanLineHandle;
+
+    end    
+
+end
+
+% cosmetics
+subtitle_mw('','Delay (hrs)','Autocorrelation')
+
+sizeY = 19.2/3;
+for setIdx = 1:numel(set_fieldNames)
+    
+    subplot(xNrPanels,yNrPanels,setIdx);    
+
+    uistack(meanLineHandleCollection{setIdx},'top');        
+
+    t=title([groupLabels(setIdx) ': ' set_hrnames{setIdx}]);
+    set(t, 'horizontalAlignment', 'left');
+    set(t, 'units', 'normalized');
+    t1 = get(t, 'position');
+    %set(t, 'position', [0 t1(2) t1(3)]);
+    set(t, 'position', [0-.1 t1(2) t1(3)]); % This was a bit trial and error    
+
+    MW_makeplotlookbetter(10,[],[12.8 yNrPanels*sizeY]/2,1)
+end
+
+fileName = [GROUPNAME '_overview_autocorrelations'];%_' set_fieldNames{setIdx}{1} '_' upper(fluorValues{fluorIdx})];
+saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
+saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
+saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+
+%% now make and save a separate legend
+legendHandle = legend(meanLineHandleCollection{1}, HUMANREADABLENAMESFORGROUPS);
+saveLegendToImage(h1, legendHandle, myAxes);
+fileName = [GROUPNAME '_overview_autocorrelations_legend'];
+saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
+saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
+saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+
+%% Make scatter plots
+
+HUMANREADABLENAMESFORGROUPSpathString = ...
+    strrep(strrep(HUMANREADABLENAMESFORGROUPS,' ','_'),',','');
+    
+
+% Set up which cases we want to run this analysis for
+casesFluorIdxs={};
+casesFluorLetters ={};
+casesFieldNames={};
+for fluorIdx=1:nrFluorColors
+    % concentration vs. growth
+    casesFluorIdxs{end+1} = [fluorIdx];
+    casesFluorLetters{end+1} = upper(fluorValues{fluorIdx});
+    casesFieldNames{end+1} = {'concentration', 'muWithConcentration'};
+    
+    % production (=rate) vs. growth
+    casesFluorIdxs{end+1} = [fluorIdx];
+    casesFluorLetters{end+1} = upper(fluorValues{fluorIdx});
+    casesFieldNames{end+1} = {'rate', 'muWithRate'};
+end
+
+% run over different cases to plot
+% This is a bit redundant with the schnitzcells loading, but it was the
+% most lazy way to do it...
+for caseIdx = 1:numel(casesFieldNames)
+
+    % get information on the case we're going to plot now
+    fluorIdx=casesFluorIdxs{caseIdx};
+    currentFluorLetter = casesFluorLetters{caseIdx};
+    currentFieldNames = casesFieldNames{caseIdx};
+
+    % close figures from previous round if applicable
+    if exist('hScatter','var'), if ishandle(hScatter), close(hScatter); end, end
+    
+    % create figures
+    hScatter=[];
+    for groupIdx = 1:numel(applicableIndices)
+        hScatter(groupIdx)=figure(); clf; hold on; 
     end
 
-    fileName = [GROUPNAME '_overview_correlations_CmuPmu_' upper(fluorValues{fluorIdx})];
+    % get some colors
+    somecolors = linspecer(numel(applicableIndices));
 
-    saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
-    saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
-    saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+    % go over groups
+    meanLineHandles={};contourHandles={};averagedYHandles={};
+    suggxlims1=[]; suggxlims2=[]; suggylims1=[]; suggylims2=[];
+    for groupIdx = 1:numel(applicableIndices)
+
+        %% plot all plots within that group (for this case)
+        hCurrent = hScatter(groupIdx);
+
+        meanLineHandles{groupIdx}=[];
+        contourHandles{groupIdx}=[];
+        averagedYHandles{groupIdx}=[];    
+        for plotIdx = 1:numel(applicableIndices{groupIdx}) 
+
+
+            %% 
+
+            clear output
+
+            %collectedOutput.(currentParameterNameToCollect) = {{}};
+
+            % Set appropriate index
+            dataIdx =  applicableIndices{groupIdx}(plotIdx);
+
+            % Load configuration file and pre-process dataset info
+            fluorDynamicsManager_sub_PreprocessDatasetInfo
+                % also determines dataFileName
+
+            load(dataFileName,'s_rm');
+
+            %%                
+            lineColor = somecolors(groupIdx,:);
+
+            theRawfieldNames = {fieldNameDictPerGroup{groupIdx}{plotIdx}.paramNames.(currentFieldNames{1}){fluorIdx},
+                                fieldNameDictPerGroup{groupIdx}{plotIdx}.paramNames.(currentFieldNames{2}){fluorIdx}};
+
+            % actually make a plot
+            [meanLineHandle,contourHandle,individualLineHandles,averagedYHandle,suggxlim,suggylim] = fluorDynamicsManager_sub_scatterCloudsForGroup(hCurrent,s_rm,theRawfieldNames,fluorIndices,lineColor)        
+            meanLineHandles{groupIdx}(end+1)=meanLineHandle;
+            contourHandles{groupIdx}(end+1)=contourHandle;
+            averagedYHandles{groupIdx}(end+1)=averagedYHandle;                
+
+            suggxlims1(end+1)=suggxlim(1);
+            suggxlims2(end+1)=suggxlim(2);
+            suggylims1(end+1)=suggylim(1);
+            suggylims2(end+1)=suggylim(2);
+            
+        end
+
+        xlim([min(suggxlims1) max(suggxlims2)]);
+        ylim([min(suggylims1) max(suggylims2)]);        
+        
+        uistack(contourHandles{groupIdx},'top');        
+        uistack(meanLineHandles{groupIdx},'top');
+        uistack(averagedYHandles{groupIdx},'top');
+
+        set(averagedYHandle,'LineWidth',1);
+        set(contourHandles{groupIdx},'LineWidth',1);
+
+        % Some cosmetics
+        if strcmp(currentFieldNames{1}, 'concentration')
+            xlabel(['Concentration ' currentFluorLetter ' (a.u.)']);
+        elseif strcmp(currentFieldNames{1}, 'rate')
+            xlabel(['Production ' currentFluorLetter ' (a.u.)']);
+        end
+        ylabel('Growth rate (doublings/hr)');
+
+        MW_makeplotlookbetter(10,[],[12.8/2, 19.2/3]/2,1);
+
+        % Save the plots
+        fileName = [GROUPNAME '_scatters_' HUMANREADABLENAMESFORGROUPSpathString{groupIdx} '_' currentFieldNames{2} '_' currentFieldNames{1} '_'  currentFluorLetter ];%_' set_fieldNames{setIdx}{1} '_' upper(fluorValues{fluorIdx})];
+        saveas(hCurrent,[OUTPUTFOLDER 'tif_' fileName '.tif']);
+        saveas(hCurrent,[OUTPUTFOLDER 'svg_' fileName '.svg']);
+        saveas(hCurrent,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+
+
+    end
     
 end
+
+disp('Done making all scatters..');
 %% 
 
 %{
@@ -1073,16 +1221,9 @@ end
 %%
 
 
-%% ...
+%% 
 
-for i=1:10
-    i=i+1
-end
-
-
-
-
-
+disp('All done, hurray!!');
 
 
 
