@@ -10,8 +10,8 @@
 % that data set. Open MW_GUI_schnitzcells to easily edit the config file.
 %
 % OPTIONAL PARAMETERS TO SET:
-% - NOSELECTIONLOOKATALLANALYSES
-% - RERUNANALYSIS
+% - NOSELECTIONLOOKATALLANALYSES=1
+% - RERUNANALYSIS=1
 
 % Run over datafiles to run analysis if this is necessary
 for dataIdx= 1:nrDataLines
@@ -32,7 +32,7 @@ for dataIdx= 1:nrDataLines
     % Now determine if we want to re-run the analysis
     % (I.e. if we want to go over all, or if dataset is mentioned in any of 
     % the to-plot identifiers.)
-    if exist('NOSELECTIONLOOKATALLANALYSES','var') | any(cellfun(@(x) strcmp(identifierInXLS,x), {IDENTIFIERSTOPLOT{:}}))
+    if exist('NOSELECTIONLOOKATALLANALYSES','var') | any(cellfun(@(x) strcmp(identifierInXLS,x), [IDENTIFIERSTOPLOT{:}]))
     
         % And run the analysis if there is not already data
         if exist(dataFileName,'file') & ~exist('RERUNANALYSIS','var')
@@ -48,6 +48,9 @@ for dataIdx= 1:nrDataLines
             pause(5);
 
             % ===
+            % Update the production field names
+            warning('Overwriting production field name');
+            ourSettings.fluorDerivativeFieldName = 'dX5_divAreaPx_cycCor'; % this is the updated rate field            
             % overwrite the PLOTSCATTER setting
             ourSettings.PLOTSCATTER = 0;
             % Don't show figures
@@ -58,7 +61,7 @@ for dataIdx= 1:nrDataLines
             % tell master script schnitzcells data should be loaded from directory
             LOADDATASETATEND = 1;
             % Note:
-            % also ourSettings.fitTimeCrosscorr is an important paramter
+            % also ourSettings.fitTimeCrosscorr is an important parameter
             % that decides which part of the branchData is taken.
 
             % run the masterscript analysis part

@@ -5,6 +5,10 @@
 % is loaded, to establish more parameters that are necessary to run the
 % analysis and/or load the data/plots.
 %
+% Input that is required:
+% - dataIdx
+% - ..
+%
 % Parameters that are determined by this script are:
 % 
 % rootDir

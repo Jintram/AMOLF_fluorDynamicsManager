@@ -7,6 +7,10 @@
 
 OUTPUTFOLDER = 'U:\THESIS\Thesis\ChapterX_CRP\Figures\matlabExport\';
 
+if ~exist('FIGURESVISIBLE','var')
+    FIGURESVISIBLE='on'; % choose 'off' to not have figures visible
+end
+
 %% A flashy new script to handle all my data
 
 % Important parameter names in this script are
@@ -72,6 +76,7 @@ disp('Excel file with overview of data loaded..');
 z_plotssets_plasmids1
 z_plotssets_plasmids2
 z_plotssets_chromoCRPs70_1
+z_plotssets_chromoCRPs70_prime
 z_plotssets_chromo_misc
 %}
 
@@ -248,7 +253,7 @@ for plotTypeIdx = 1:numel(namesOfDataGathered)
 
         % Make figure
         if exist('h1','var'), if ishandle(h1), close(h1), end, end % close if handle already existed
-        h1=figure(); clf; hold on; % make new
+        h1=figure('Visible',FIGURESVISIBLE); clf; hold on; % make new
         MW_makeplotlookbetter(8,[],[12.8 theHeight]./2,1); 
 
         % Necessary later
@@ -334,7 +339,7 @@ for plotTypeIdx = 1:numel(namesOfDataGathered)
 
         end
 
-        figure(h1);
+        set(0,'CurrentFigure',h1);
 
         % Also give overview of the different conditions:
         disp(['===' 10 'FIGURE LEGEND']);
@@ -411,6 +416,7 @@ for plotTypeIdx = 1:numel(namesOfDataGathered)
         saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
         saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
         saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
+        saveas(h1,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
         
     end
     
@@ -592,7 +598,7 @@ for fluorIdx = 1:nrFluorColors
     currentFluor = upper(fluorValues{fluorIdx});
     searchTermsForWhatToPlot{end+1} = ['^d' currentFluor];
     whatToPlotCommonName{end+1} = ['production_' currentFluor];
-    searchTermsForWhatToPlot{end+1} = ['^' currentFluor '6']; 
+    searchTermsForWhatToPlot{end+1} = ['^' currentFluor '5']; 
     whatToPlotCommonName{end+1} = ['concentration_' currentFluor];
 end
 
@@ -769,9 +775,95 @@ fileName = [GROUPNAME '_overview_means'];
 saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
 saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
 saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
+saveas(h1,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
 
 %plotting CV
 %output.CV.(theFieldNames).meanCoefficientOfVariationLast10
+
+%% Collect dt values that are needed for determining production in the units we want
+
+% This is actually obsolete, as the rate that is used in the end, dX5, is
+% calculated based on a linear fit to three points, and hence already does
+% contain a /dt term.
+%{
+myTimeBetweenShots=NaN(1,max([applicableIndices{:}]));
+for dataIdx=[applicableIndices{:}]
+    
+    
+    % Load configuration file and pre-process dataset info
+    fluorDynamicsManager_sub_PreprocessDatasetInfo
+        % also determines dataFileName
+
+    load(dataFileName,'s_rm');
+    
+    % Let's simply base this only on 1st fluor
+    fieldName = ourSettings.timeFieldNameDerivative;
+    fieldName = strrep(fieldName,'X',upper(ourSettings.fluor1));
+    
+    % Now determine the dt
+    dts=arrayfun(@(x) s_rm(x).(fieldName)(2:end)-s_rm(x).(fieldName)(1:end-1), 1:numel(s_rm), 'UniformOutput', 0)
+    dts=[dts{:}];
+    
+    meandt = mean(dts);
+    stddt  = std(dts);
+    noisedt = stddt/meandt;
+    
+    if noisedt>0.01
+       error('Your dt values are inconsistent with each other..'); 
+    end
+    
+    myTimeBetweenShots(dataIdx) = meandt;
+    
+end
+
+disp('Analysis completely done.');
+%}
+
+%% Make a modified plot, combining some of the parameters together
+
+h2=figure(2); clf; hold on;
+
+alldatax=[];alldatay=[];
+for paramIdx = 1:numelMyOverviewParametersToPlot
+    %myYlim=[0 max([processedOutput.(plotType).allMeans+processedOutput.(plotType).allSEMs, [processedOutput.(plotType).allValues{:}]])*2];
+
+    % put printed values and single datapoints
+    for groupIdx = 1:numel(applicableIndices)
+
+        %thedts = myTimeBetweenShots(applicableIndices{groupIdx});
+            % proved not necessary
+                
+        xdata = processedOutput.('Production_Y').allValues{groupIdx};
+        ydata = processedOutput.('Concentration_Y').allValues{groupIdx} .* log(2)/60.*processedOutput.('Growth').allValues{groupIdx};
+        
+        % single data points
+        plot(xdata,...
+                ydata,...
+                'o',...
+                'LineWidth',myLineWidth,...
+                'Color',someColors(groupIdx,:),...
+                'MarkerFaceColor',someColors(groupIdx,:));
+           
+       alldatax = [alldatax xdata];
+       alldatay = [alldatay ydata];
+        
+    end
+    
+    allvalues = [alldatax alldatay];
+    plot([min(allvalues),max(allvalues)],[min(allvalues),max(allvalues)],'k-');
+    
+    % fit 1
+    p=polyfit(alldatax,alldatay,1);
+    xToFit = linspace(min(allvalues),max(allvalues),3);
+    plot(xToFit,xToFit*p(1)+p(2),'k--')
+    
+    % fit 2
+    offset = mean(alldatay-alldatax);
+    plot([min(allvalues),max(allvalues)],[min(allvalues),max(allvalues)]+offset,'k:');
+end
+
+xlabel('Production Y [a.u./min]');
+ylabel(['Concentration  times growth rate' 10 '[a.u./(px*min]']);
 
 %% Make a text files as base for caption
 
@@ -935,7 +1027,7 @@ set_linecolors = ...
 
 for fluorIdx = 1:nrFluorColors
     %%
-    h1=figure(); clf; 
+    h1=figure('Visible',FIGURESVISIBLE); clf; 
     
     set_fluorIndices = {[fluorIdx,fluorIdx],...
                         [fluorIdx,fluorIdx]};              
@@ -994,6 +1086,7 @@ for fluorIdx = 1:nrFluorColors
     saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
     saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
     saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+    saveas(h1,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
     
 end
 
@@ -1025,7 +1118,7 @@ xNrPanels = ceil(sqrt(totalNrPanels));
 yNrPanels = sum(ceil(totalNrPanels./xNrPanels));         
 
 % Plot the figure
-h1=figure(); clf; 
+h1=figure('Visible',FIGURESVISIBLE); clf; 
 
 meanLineHandleCollection=cell(1,numel(set_fieldNames));
 myAxes=[];
@@ -1077,6 +1170,7 @@ fileName = [GROUPNAME '_overview_autocorrelations'];%_' set_fieldNames{setIdx}{1
 saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
 saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
 saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+saveas(h1,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
 
 %% now make and save a separate legend
 legendHandle = legend(meanLineHandleCollection{1}, HUMANREADABLENAMESFORGROUPS);
@@ -1085,6 +1179,7 @@ fileName = [GROUPNAME '_overview_autocorrelations_legend'];
 saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
 saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
 saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+saveas(h1,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
 
 %% Make scatter plots
 
@@ -1092,20 +1187,51 @@ HUMANREADABLENAMESFORGROUPSpathString = ...
     strrep(strrep(HUMANREADABLENAMESFORGROUPS,' ','_'),',','');
     
 
+% Note that some previous sections (like gathering the file paths and
+% cross-corr paths) should be execute before
+
 % Set up which cases we want to run this analysis for
 casesFluorIdxs={};
 casesFluorLetters ={};
 casesFieldNames={};
 for fluorIdx=1:nrFluorColors
     % concentration vs. growth
-    casesFluorIdxs{end+1} = [fluorIdx];
-    casesFluorLetters{end+1} = upper(fluorValues{fluorIdx});
+    casesFluorIdxs{end+1} = [fluorIdx fluorIdx];
+    casesFluorLetters{end+1} = {upper(fluorValues{casesFluorIdxs{end}(1)}) upper(fluorValues{casesFluorIdxs{end}(2)})};
     casesFieldNames{end+1} = {'concentration', 'muWithConcentration'};
     
     % production (=rate) vs. growth
-    casesFluorIdxs{end+1} = [fluorIdx];
-    casesFluorLetters{end+1} = upper(fluorValues{fluorIdx});
+    casesFluorIdxs{end+1} = [fluorIdx fluorIdx];
+    casesFluorLetters{end+1} = {upper(fluorValues{casesFluorIdxs{end}(1)}) upper(fluorValues{casesFluorIdxs{end}(2)})};
     casesFieldNames{end+1} = {'rate', 'muWithRate'};
+    
+    % concentration vs. production (fluor1->fluor1)
+    casesFluorIdxs{end+1} = [fluorIdx fluorIdx];
+    casesFluorLetters{end+1} = {upper(fluorValues{casesFluorIdxs{end}(1)}) upper(fluorValues{casesFluorIdxs{end}(2)})};
+    casesFieldNames{end+1} = {'concentrationWithRate', 'rate'};
+    
+    for fluorIdx2 = (fluorIdx+1):nrFluorColors
+        % production vs. production
+        casesFluorIdxs{end+1} = [fluorIdx2 fluorIdx];
+        casesFluorLetters{end+1} = {upper(fluorValues{casesFluorIdxs{end}(1)}) upper(fluorValues{casesFluorIdxs{end}(2)})};
+        casesFieldNames{end+1} = {'rate', 'rate'};
+    
+        % concentration vs. concentration
+        casesFluorIdxs{end+1} = [fluorIdx2 fluorIdx];
+        casesFluorLetters{end+1} = {upper(fluorValues{casesFluorIdxs{end}(1)}) upper(fluorValues{casesFluorIdxs{end}(2)})};
+        casesFieldNames{end+1} = {'concentration', 'concentration'};
+        
+        % concentration vs. production (fluor1->fluor2)
+        casesFluorIdxs{end+1} = [fluorIdx fluorIdx2];
+        casesFluorLetters{end+1} = {upper(fluorValues{casesFluorIdxs{end}(1)}) upper(fluorValues{casesFluorIdxs{end}(2)})};
+        casesFieldNames{end+1} = {'concentrationWithRate', 'rate'};
+        
+        % concentration vs. production (fluor2->fluor1)
+        casesFluorIdxs{end+1} = [fluorIdx2 fluorIdx];
+        casesFluorLetters{end+1} = {upper(fluorValues{casesFluorIdxs{end}(1)}) upper(fluorValues{casesFluorIdxs{end}(2)})};
+        casesFieldNames{end+1} = {'concentrationWithRate', 'rate'};
+    end
+    
 end
 
 % run over different cases to plot
@@ -1114,8 +1240,8 @@ end
 for caseIdx = 1:numel(casesFieldNames)
 
     % get information on the case we're going to plot now
-    fluorIdx=casesFluorIdxs{caseIdx};
-    currentFluorLetter = casesFluorLetters{caseIdx};
+    fluorIndices=casesFluorIdxs{caseIdx};
+    currentFluorLetters = casesFluorLetters{caseIdx};
     currentFieldNames = casesFieldNames{caseIdx};
 
     % close figures from previous round if applicable
@@ -1124,7 +1250,7 @@ for caseIdx = 1:numel(casesFieldNames)
     % create figures
     hScatter=[];
     for groupIdx = 1:numel(applicableIndices)
-        hScatter(groupIdx)=figure(); clf; hold on; 
+        hScatter(groupIdx)=figure('Visible',FIGURESVISIBLE); clf; hold on; 
     end
 
     % get some colors
@@ -1162,14 +1288,16 @@ for caseIdx = 1:numel(casesFieldNames)
             %%                
             lineColor = somecolors(groupIdx,:);
 
-            theRawfieldNames = {fieldNameDictPerGroup{groupIdx}{plotIdx}.paramNames.(currentFieldNames{1}){fluorIdx},
-                                fieldNameDictPerGroup{groupIdx}{plotIdx}.paramNames.(currentFieldNames{2}){fluorIdx}};
+            theRawfieldNames = {fieldNameDictPerGroup{groupIdx}{plotIdx}.paramNames.(currentFieldNames{1}){fluorIndices(1)},...
+                                fieldNameDictPerGroup{groupIdx}{plotIdx}.paramNames.(currentFieldNames{2}){fluorIndices(2)}};
 
             % actually make a plot
             [meanLineHandle,contourHandle,individualLineHandles,averagedYHandle,suggxlim,suggylim] = fluorDynamicsManager_sub_scatterCloudsForGroup(hCurrent,s_rm,theRawfieldNames,fluorIndices,lineColor)        
             meanLineHandles{groupIdx}(end+1)=meanLineHandle;
             contourHandles{groupIdx}(end+1)=contourHandle;
-            averagedYHandles{groupIdx}(end+1)=averagedYHandle;                
+            if ~isempty(averagedYHandle)
+                averagedYHandles{groupIdx}(end+1)=averagedYHandle;                
+            end
 
             suggxlims1(end+1)=suggxlim(1);
             suggxlims2(end+1)=suggxlim(2);
@@ -1190,19 +1318,29 @@ for caseIdx = 1:numel(casesFieldNames)
 
         % Some cosmetics
         if strcmp(currentFieldNames{1}, 'concentration')
-            xlabel(['Concentration ' currentFluorLetter ' (a.u.)']);
+            xlabel(['Concentration ' currentFluorLetters{1} ' (a.u.)']);
         elseif strcmp(currentFieldNames{1}, 'rate')
-            xlabel(['Production ' currentFluorLetter ' (a.u.)']);
+            xlabel(['Production ' currentFluorLetters{1} ' (a.u.)']);
         end
-        ylabel('Growth rate (doublings/hr)');
+        
+        if strcmp(currentFieldNames{2}, 'concentration')
+            ylabel(['Concentration ' currentFluorLetters{2} ' (a.u.)']);
+        elseif strcmp(currentFieldNames{2}, 'rate')
+            ylabel(['Production ' currentFluorLetters{2} ' (a.u.)']);
+        else
+            % assume it's growth if neither concentration or rate 
+            ylabel('Growth rate (doublings/hr)');
+        end
+        
 
         MW_makeplotlookbetter(10,[],[12.8/2, 19.2/3]/2,1);
 
         % Save the plots
-        fileName = [GROUPNAME '_scatters_' HUMANREADABLENAMESFORGROUPSpathString{groupIdx} '_' currentFieldNames{2} '_' currentFieldNames{1} '_'  currentFluorLetter ];%_' set_fieldNames{setIdx}{1} '_' upper(fluorValues{fluorIdx})];
+        fileName = [GROUPNAME '_scatters_' HUMANREADABLENAMESFORGROUPSpathString{groupIdx} '_' currentFieldNames{2} currentFluorLetters{2} '_' currentFieldNames{1} currentFluorLetters{1} ];%_' set_fieldNames{setIdx}{1} '_' upper(fluorValues{fluorIdx})];
         saveas(hCurrent,[OUTPUTFOLDER 'tif_' fileName '.tif']);
         saveas(hCurrent,[OUTPUTFOLDER 'svg_' fileName '.svg']);
         saveas(hCurrent,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+        saveas(hCurrent,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
 
 
     end
@@ -1210,6 +1348,136 @@ for caseIdx = 1:numel(casesFieldNames)
 end
 
 disp('Done making all scatters..');
+
+%% Special case: production rate divided by mu, vs concentration
+%
+% Note that some previous sections (like gathering the file paths and
+% cross-corr paths) should be execute before
+
+HUMANREADABLENAMESFORGROUPSpathString = ...
+    strrep(strrep(HUMANREADABLENAMESFORGROUPS,' ','_'),',','');
+    
+% run over different cases to plot
+% This is a bit redundant with the schnitzcells loading, but it was the
+% most lazy way to do it...
+for fluorIdx = 1:nrFluorColors
+        
+    %% get information on the case we're going to plot now
+    fluorIndices = [fluorIdx fluorIdx];
+    currentFluorLetters = [fluorValues(fluorIdx) fluorValues(fluorIdx)];
+
+    % close figures from previous round if applicable
+    if exist('hScatter','var'), if ishandle(hScatter), close(hScatter); end, end
+    
+    %% create figures
+    hScatter=[];
+    for groupIdx = 1:numel(applicableIndices)
+        hScatter(groupIdx)=figure('Visible',FIGURESVISIBLE); clf; hold on; 
+    end
+
+    % get some colors
+    somecolors = linspecer(numel(applicableIndices));
+
+    %% go over groups
+    meanLineHandles={};contourHandles={};averagedYHandles={};
+    suggxlims1=[]; suggxlims2=[]; suggylims1=[]; suggylims2=[];
+    for groupIdx = 1:numel(applicableIndices)
+
+        %% plot all plots within that group (for this case)
+        hCurrent = hScatter(groupIdx);
+
+        meanLineHandles{groupIdx}=[];
+        contourHandles{groupIdx}=[];
+        averagedYHandles{groupIdx}=[];    
+        for plotIdx = 1:numel(applicableIndices{groupIdx}) 
+
+
+            %% 
+
+            clear output
+
+            %collectedOutput.(currentParameterNameToCollect) = {{}};
+
+            % Set appropriate index
+            dataIdx =  applicableIndices{groupIdx}(plotIdx);
+
+            % Load configuration file and pre-process dataset info
+            fluorDynamicsManager_sub_PreprocessDatasetInfo
+                % also determines dataFileName
+
+            load(dataFileName,'s_rm');
+
+            % Get the production rate field
+            rateFieldName = fieldNameDictPerGroup{groupIdx}{plotIdx}.paramNames.rate{fluorIdx};
+            % Get the mu field
+            muFieldName = fieldNameDictPerGroup{groupIdx}{plotIdx}.paramNames.muWithRate{fluorIdx};
+            % Get the concentration field
+            concFieldName = fieldNameDictPerGroup{groupIdx}{plotIdx}.paramNames.concentrationWithRate{fluorIdx};
+            
+            %% Now create a temporary field where prod. rate is divided by mu
+            
+            for schnitzIdx=1:numel(s_rm)
+                s_rm(schnitzIdx).tempFieldProdDivMu = ...
+                    s_rm(schnitzIdx).(rateFieldName) ./ ...
+                    (log(2)/60*s_rm(schnitzIdx).(muFieldName));
+            end
+            
+            %%                
+            lineColor = somecolors(groupIdx,:);
+
+            theRawfieldNames = {'tempFieldProdDivMu',...
+                                concFieldName};
+
+            % actually make a plot
+            [meanLineHandle,contourHandle,individualLineHandles,averagedYHandle,suggxlim,suggylim] = fluorDynamicsManager_sub_scatterCloudsForGroup(hCurrent,s_rm,theRawfieldNames,fluorIndices,lineColor);
+            meanLineHandles{groupIdx}(end+1)=meanLineHandle;
+            contourHandles{groupIdx}(end+1)=contourHandle;
+            if ~isempty(averagedYHandle)
+                averagedYHandles{groupIdx}(end+1)=averagedYHandle;                
+            end
+
+            suggxlims1(end+1)=suggxlim(1);
+            suggxlims2(end+1)=suggxlim(2);
+            suggylims1(end+1)=suggylim(1);
+            suggylims2(end+1)=suggylim(2);
+            
+        end
+
+        %% Some cosmetics
+        
+        xlim([min(suggxlims1) max(suggxlims2)]);
+        ylim([min(suggylims1) max(suggylims2)]);        
+        
+        uistack(contourHandles{groupIdx},'top');        
+        uistack(meanLineHandles{groupIdx},'top');
+        uistack(averagedYHandles{groupIdx},'top');
+
+        set(averagedYHandle,'LineWidth',1);
+        set(contourHandles{groupIdx},'LineWidth',1);
+
+        % labels
+        xlabel(['Production ' currentFluorLetters{1} ' / growth (a.u/area)']);
+        ylabel(['Concentration ' currentFluorLetters{2} ' (a.u. / area)']);
+        
+        % fonts, size
+        MW_makeplotlookbetter(10,[],[12.8/2, 19.2/3]/2,1);
+
+        % Save the plots
+        fileName = [GROUPNAME '_scatters_' HUMANREADABLENAMESFORGROUPSpathString{groupIdx} '_prod' currentFluorLetters{1} 'DivGrowth_vs_Concentration' currentFluorLetters{2} ];%_' set_fieldNames{setIdx}{1} '_' upper(fluorValues{fluorIdx})];
+        saveas(hCurrent,[OUTPUTFOLDER 'tif_' fileName '.tif']);
+        saveas(hCurrent,[OUTPUTFOLDER 'svg_' fileName '.svg']);
+        saveas(hCurrent,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+        saveas(hCurrent,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
+
+
+    end
+    
+end
+
+disp('Done making all special scatters..');
+
+
+
 %% 
 
 %{
