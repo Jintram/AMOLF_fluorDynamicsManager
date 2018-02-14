@@ -780,45 +780,6 @@ saveas(h1,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
 %plotting CV
 %output.CV.(theFieldNames).meanCoefficientOfVariationLast10
 
-%% Collect dt values that are needed for determining production in the units we want
-
-% This is actually obsolete, as the rate that is used in the end, dX5, is
-% calculated based on a linear fit to three points, and hence already does
-% contain a /dt term.
-%{
-myTimeBetweenShots=NaN(1,max([applicableIndices{:}]));
-for dataIdx=[applicableIndices{:}]
-    
-    
-    % Load configuration file and pre-process dataset info
-    fluorDynamicsManager_sub_PreprocessDatasetInfo
-        % also determines dataFileName
-
-    load(dataFileName,'s_rm');
-    
-    % Let's simply base this only on 1st fluor
-    fieldName = ourSettings.timeFieldNameDerivative;
-    fieldName = strrep(fieldName,'X',upper(ourSettings.fluor1));
-    
-    % Now determine the dt
-    dts=arrayfun(@(x) s_rm(x).(fieldName)(2:end)-s_rm(x).(fieldName)(1:end-1), 1:numel(s_rm), 'UniformOutput', 0)
-    dts=[dts{:}];
-    
-    meandt = mean(dts);
-    stddt  = std(dts);
-    noisedt = stddt/meandt;
-    
-    if noisedt>0.01
-       error('Your dt values are inconsistent with each other..'); 
-    end
-    
-    myTimeBetweenShots(dataIdx) = meandt;
-    
-end
-
-disp('Analysis completely done.');
-%}
-
 %% Make a modified plot, combining some of the parameters together
 
 h2=figure(2); clf; hold on;

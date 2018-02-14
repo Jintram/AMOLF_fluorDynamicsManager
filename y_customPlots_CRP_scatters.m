@@ -26,9 +26,13 @@ SETxAxesLabels={}; SETyAxesLabels={};
 SETtheXlims={};SETtheYlims={};
 SETaxisScales={};
 
-% define multiple sets of data
+specialoptions = struct;
+SETcounter=0;
+
+%% define multiple sets of data
 
 % s70 concentration
+SETcounter=SETcounter+1;
 SETxAxesLabels{end+1} = 'Concentration constitutive reporter (a.u.)';
 SETyAxesLabels{end+1} = 'Growth rate (dbl/hr)';
 SETSwhichsubplottoputthem{end+1} = [1,2,2,2];
@@ -40,8 +44,10 @@ SETsaveIdentifiers{end+1} = ['muVsConcentration' 'C'];
 SETtheXlims{end+1}=[50 1e3];
 SETtheYlims{end+1}=[0 1.5];
 SETaxisScales{end+1}={'log','linear'};
+specialoptions(SETcounter).linexy = 0;
 
 % s70 rate
+SETcounter=SETcounter+1;
 SETxAxesLabels{end+1} = 'Production constitutive reporter (a.u.)';
 SETyAxesLabels{end+1} = 'Growth rate (dbl/hr)';
 SETSwhichsubplottoputthem{end+1} = [1,2,2,2];
@@ -53,8 +59,10 @@ SETsaveIdentifiers{end+1} = ['muVsRate' 'C'];
 SETtheXlims{end+1}=[.01 5];
 SETtheYlims{end+1}=[0 1.5];
 SETaxisScales{end+1}={'log','linear'};
+specialoptions(SETcounter).linexy = 0;
 
 % CRP concentration
+SETcounter=SETcounter+1;
 SETxAxesLabels{end+1} = 'Concentration CRP reporter (a.u.)';
 SETyAxesLabels{end+1} = 'Growth rate (dbl/hr)';
 SETSwhichsubplottoputthem{end+1} = [1,2,2,2];
@@ -66,8 +74,10 @@ SETsaveIdentifiers{end+1} = ['muVsConcentration' 'Y'];
 SETtheXlims{end+1}=[100 1e3];
 SETtheYlims{end+1}=[0 1.5];
 SETaxisScales{end+1}={'log','linear'};
+specialoptions(SETcounter).linexy = 0;
 
 % CRP rate
+SETcounter=SETcounter+1;
 SETxAxesLabels{end+1} = 'Production CRP reporter (a.u.)';
 SETyAxesLabels{end+1} = 'Growth rate (dbl/hr)';
 SETSwhichsubplottoputthem{end+1} = [1,2,2,2];
@@ -79,8 +89,10 @@ SETsaveIdentifiers{end+1} = ['muVsRate' 'Y'];
 SETtheXlims{end+1}=[.01 5];
 SETtheYlims{end+1}=[0 1.5];
 SETaxisScales{end+1}={'log','linear'};
+specialoptions(SETcounter).linexy = 0;
 
 % CRP concentration (y-axis) vs. s70 concentration (x-axis)
+SETcounter=SETcounter+1;
 SETxAxesLabels{end+1} = 'Concentration CRP reporter (a.u.)';
 SETyAxesLabels{end+1} = 'Concentration s70 reporter (a.u.)';
 SETSwhichsubplottoputthem{end+1} = [1,2,2,2];
@@ -92,8 +104,10 @@ SETsaveIdentifiers{end+1} = ['concentrationVsConcentration' 'YC'];
 SETtheXlims{end+1}=[10 1e3];
 SETtheYlims{end+1}=[10 1e3];
 SETaxisScales{end+1}={'log','log'};
+specialoptions(SETcounter).linexy = 0;
 
 % CRP rate (y-axis) vs. s70 rate (x-axis)
+SETcounter=SETcounter+1;
 SETxAxesLabels{end+1} = 'Production CRP reporter (a.u.)';
 SETyAxesLabels{end+1} = 'Production s70 reporter (a.u.)';
 SETSwhichsubplottoputthem{end+1} = [1,2,2,2];
@@ -105,10 +119,12 @@ SETsaveIdentifiers{end+1} = ['rateVsRate' 'YC'];
 SETtheXlims{end+1}=[.01 5];
 SETtheYlims{end+1}=[.01 5];
 SETaxisScales{end+1}={'log','log'};
+specialoptions(SETcounter).linexy = 0;
 
 % -------------------------------------------------------------------------
 
 % CRP concentration (y-axis) vs. s70 rate (x-axis)
+SETcounter=SETcounter+1;
 SETxAxesLabels{end+1} = 'Concentration CRP reporter (a.u.)';
 SETyAxesLabels{end+1} = 'Production s70 reporter (a.u.)';
 SETSwhichsubplottoputthem{end+1} = [1,2,2,2];
@@ -120,8 +136,10 @@ SETsaveIdentifiers{end+1} = ['concVsRate' 'CY'];
 SETtheXlims{end+1}=[10 5000];
 SETtheYlims{end+1}=[.01 5];
 SETaxisScales{end+1}={'log','log'};
+specialoptions(SETcounter).linexy = 0;
 
 % CRP concentration (y-axis) vs. CRP rate (x-axis)
+SETcounter=SETcounter+1;
 SETxAxesLabels{end+1} = 'Concentration CRP reporter (a.u.)';
 SETyAxesLabels{end+1} = 'Production CRP reporter (a.u.)';
 SETSwhichsubplottoputthem{end+1} = [1,2,2,2];
@@ -133,8 +151,10 @@ SETsaveIdentifiers{end+1} = ['concVsRate' 'YY'];
 SETtheXlims{end+1}=[10 5000];
 SETtheYlims{end+1}=[.01 5];
 SETaxisScales{end+1}={'log','log'};
+specialoptions(SETcounter).linexy = 0;
 
 % s70 concentration (y-axis) vs. s70 rate (x-axis)
+SETcounter=SETcounter+1;
 SETxAxesLabels{end+1} = 'Concentration s70 reporter (a.u.)';
 SETyAxesLabels{end+1} = 'Production s70 reporter (a.u.)';
 SETSwhichsubplottoputthem{end+1} = [1,2,2,2];
@@ -146,8 +166,10 @@ SETsaveIdentifiers{end+1} = ['concVsRate' 'CC'];
 SETtheXlims{end+1}=[10 5000];
 SETtheYlims{end+1}=[.01 5];
 SETaxisScales{end+1}={'log','log'};
+specialoptions(SETcounter).linexy = 0;
 
 % s70 concentration (y-axis) vs. CRP rate (x-axis)
+SETcounter=SETcounter+1;
 SETxAxesLabels{end+1} = 'Concentration s70 reporter (a.u.)';
 SETyAxesLabels{end+1} = 'Production CRP reporter (a.u.)';
 SETSwhichsubplottoputthem{end+1} = [1,2,2,2];
@@ -159,6 +181,42 @@ SETsaveIdentifiers{end+1} = ['concVsRate' 'YC'];
 SETtheXlims{end+1}=[10 5000];
 SETtheYlims{end+1}=[.01 5];
 SETaxisScales{end+1}={'log','log'};
+specialoptions(SETcounter).linexy = 0;
+
+% -------------------------------------------------------------------------
+
+% s70 prod/growth vs concentration
+SETcounter=SETcounter+1;
+SETxAxesLabels{end+1} = 'Production s70 / growth (a.u./px)';
+SETyAxesLabels{end+1} = 'Concentration s70 (a.u./px)';
+SETSwhichsubplottoputthem{end+1} = [1,2,2,2];
+SETSwhichfigurestottake{end+1}= {['fig_chromo1prime_scatters_WT_CRP_' 'prod' 'C' 'DivGrowth_vs_Concentration' 'C' '.fig'],...
+                      ['fig_chromo1prime_scatters_No_FB_low_' 'prod' 'C' 'DivGrowth_vs_Concentration' 'C' '.fig'],...
+                      ['fig_chromo1prime_scatters_No_FB_med_' 'prod' 'C' 'DivGrowth_vs_Concentration' 'C' '.fig'],...
+                      ['fig_chromo1prime_scatters_No_FB_high_' 'prod' 'C' 'DivGrowth_vs_Concentration' 'C' '.fig']};   
+SETsaveIdentifiers{end+1} = ['prodDivGrowthVsConc' 'CC'];
+SETtheXlims{end+1}=[0 1000];
+SETtheYlims{end+1}=[0 1000];
+SETaxisScales{end+1}={'linear','linear'};
+specialoptions(SETcounter).linexy = 1;
+specialoptions(SETcounter).axisequal = 1;
+
+% CRP prod/growth vs concentration
+SETcounter=SETcounter+1;
+SETxAxesLabels{end+1} = 'Production CRP / growth (a.u./px)';
+SETyAxesLabels{end+1} = 'Concentration CRP (a.u./px)';
+SETSwhichsubplottoputthem{end+1} = [1,2,2,2];
+SETSwhichfigurestottake{end+1}= {['fig_chromo1prime_scatters_WT_CRP_' 'prod' 'Y' 'DivGrowth_vs_Concentration' 'Y' '.fig'],...
+                      ['fig_chromo1prime_scatters_No_FB_low_' 'prod' 'Y' 'DivGrowth_vs_Concentration' 'Y' '.fig'],...
+                      ['fig_chromo1prime_scatters_No_FB_med_' 'prod' 'Y' 'DivGrowth_vs_Concentration' 'Y' '.fig'],...
+                      ['fig_chromo1prime_scatters_No_FB_high_' 'prod' 'Y' 'DivGrowth_vs_Concentration' 'Y' '.fig']};   
+SETsaveIdentifiers{end+1} = ['prodDivGrowthVsConc' 'YY'];
+SETtheXlims{end+1}=[0 1000];
+SETtheYlims{end+1}=[0 1000];
+SETaxisScales{end+1}={'linear','linear'};
+specialoptions(SETcounter).linexy = 1;
+specialoptions(SETcounter).axisequal = 1;
+
 %%
 
 for setIdx = 1:numel(SETSwhichsubplottoputthem)
@@ -214,6 +272,14 @@ for setIdx = 1:numel(SETSwhichsubplottoputthem)
         uistack(lineHandles,'top');        
         uistack(contourHandles,'top');  
 
+        % Special options if desired
+        if ~any(isnan(theXlim)) & ~any(isnan(theYlim)) & specialoptions(setIdx).linexy
+            plot([min([theXlim theXlim]),max([theXlim theXlim])],   [min([theXlim theXlim]),max([theXlim theXlim])],'k-'); 
+        end
+        if specialoptions(setIdx).axisequal
+            axis equal
+        end
+        
         set(gca,'xscale',currentScale{1});
         set(gca,'yscale',currentScale{2});
         % set(gca,'xscale','log');        
@@ -231,8 +297,8 @@ for setIdx = 1:numel(SETSwhichsubplottoputthem)
 
         MW_makeplotlookbetter(10,[],[12.8, 19.2/3]/2,1);
     end
-
-    subtitle_mw('',xAxesLabel,yAxesLabel,0.05,0.12);
+    
+    subtitle_mw('',xAxesLabel,yAxesLabel,0.05,0.12);    
 
     fileName = [GROUPNAME '_overview_custom_scatter_' saveIdentifier];
 
@@ -246,6 +312,10 @@ for setIdx = 1:numel(SETSwhichsubplottoputthem)
     end
     
 end
+
+%% Some optional stuff
+
+
 
 %% Legend
 
