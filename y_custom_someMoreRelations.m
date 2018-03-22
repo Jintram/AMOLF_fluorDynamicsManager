@@ -396,6 +396,112 @@ if exist(OUTPUTFOLDER)
     saveLegendToImage(h2ForLegend, lH, [], [OUTPUTFOLDER 'pdf_' fileName '_legend.pdf'],'pdf');
 end
 
+
+%% Understanding the CRP stuff
+
+for reporterIdx = 1:2
+
+    switch reporterIdx
+        case 1
+            LETTER = 'Y';
+            TITLE = 'Metabolic reporter';
+        case 2
+            LETTER = 'C';
+            TITLE = 'Constitutive reporter';
+    end
+    
+    h2=figure(2); clf; hold on;
+
+    alldatap=[];alldataC=[]; alldataMu= [];
+    % put printed values and single datapoints
+    for groupIdx = 1:numel(applicableIndices)
+
+        %thedts = myTimeBetweenShots(applicableIndices{groupIdx});
+            % proved not necessary
+
+        pdata = processedOutput.(['Production_' LETTER]).allValues{groupIdx};
+        Cdata = processedOutput.(['Concentration_' LETTER]).allValues{groupIdx};
+        mudata = log(2)/60.*processedOutput.('Growth').allValues{groupIdx};
+
+        % single data points
+        plot(pdata,...
+                Cdata,...
+                'o',...
+                'LineWidth',2,...
+                'Color',someColors(groupIdx,:),...
+                'MarkerFaceColor','none',... someColors(groupIdx,:),...
+                'MarkerSize',10);
+
+       alldatap = [alldatap pdata];
+       alldataC = [alldataC Cdata];
+       alldataMu = [alldataMu mudata];
+
+    end
+
+    %{
+    allvalues = [0 alldatap./alldataMu alldataC];
+    plot([min(allvalues),max(allvalues)*1.1],[min(allvalues),max(allvalues)*1.1],'k-');
+    %}
+    
+    title(TITLE);
+    ylabel(['Concentration [a.u./px]']);
+    xlabel('Production [a.u./(px min)]');
+
+    %xlim([0,max(allvalues)*1.1]);
+    %ylim([0,max(allvalues)*1.1]);
+
+    %{
+    % fit 1
+    p=polyfit(alldatap./alldataMu,alldataC,1);
+    xToFit = linspace(min(allvalues),max(allvalues),3);
+    plot(xToFit,xToFit*p(1)+p(2),'k--')
+
+    % fit 2
+    offset = mean(alldataC-alldatap./alldataMu);
+    plot([min(allvalues),max(allvalues)],[min(allvalues),max(allvalues)]+offset,'k:');
+
+    % Print fit
+    %text((max(xDataToFit)-min(xDataToFit))/5+min(xDataToFit),min(yDataToFit),['Fit: y=' sprintf('%.4f',p(3)) ' + ' sprintf('%.4f',p(2)) 'x' ' + ' sprintf('%.4f',p(1)) 'x^2']);
+    text(25,max(alldataC),['Fit: y=' sprintf('%.2f',p(2)) '' ' + ' sprintf('%.2f',p(1)) 'x']);
+    text(25,max(alldataC)-25,['Or: C = p/\mu + ' sprintf('%.2f',offset) ]);
+    %}
+    
+    
+    MW_makeplotlookbetter(10,[],[6 6]/2,1)
+    if exist(OUTPUTFOLDER)
+        fileName = ['relationsAverages_prodConc' LETTER];
+        saveas(h2,[OUTPUTFOLDER 'svg_' fileName '.svg'],'svg');
+        saveas(h2,[OUTPUTFOLDER 'fig_' fileName '.fig'],'fig');
+        saveas(h2,[OUTPUTFOLDER 'tif_' fileName '.tif'],'tif');
+        saveas(h2,[OUTPUTFOLDER 'pdf_' fileName '.pdf'],'pdf');
+
+        % Now some effort to create a legend
+        h2ForLegend = copyfig(h2)
+        lH=legend(HUMANREADABLENAMESFORGROUPS,'Location','SouthEast');    
+        allText = findall(gcf,'Type','text');
+        delete(allText);
+        saveLegendToImage(h2ForLegend, lH, [], [OUTPUTFOLDER 'pdf_' fileName '_legend.pdf'],'pdf');
+    end
+
+end    
+    
+    %{
+
+    %}
+    
+    %alpha=1.5; beta=.5;
+    %plot(alldatap,alpha*alldatap./alldataMu + alldatap*beta,'o');
+    
+    %{
+    yDataToFit = alldatap;
+    xDataToFit = alldataC;
+    p=polyfit(xDataToFit,yDataToFit,2);
+    xToShow = linspace(min(xDataToFit),max(xDataToFit),100);
+    plot(xToShow,xToShow.^2*p(1)+xToShow*p(2)+p(3),'k-')
+    %}
+    
+%end
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Additional plots :
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -542,16 +648,17 @@ for groupIdx = 1:numel(applicableIndices)
     %}
     
     l(end+1)=scatter(pdatas70,...
-             Cdatas70.*mudata,...
+             Cdatas70,...
              'MarkerEdgeColor',someColors(groupIdx,:),...
              'MarkerFaceColor',someColors(groupIdx,:));
     hold on;
 
     alldatax =  [alldatax pdatas70];
-    alldatay = [alldatay [Cdatas70.*mudata]];
+    alldatay = [alldatay Cdatas70];
     
 end
 
+%{
 allvalues = [alldatax alldatay];
 plot([min(allvalues),max(allvalues)],[min(allvalues),max(allvalues)],'k-');
 
@@ -566,6 +673,7 @@ plot([min(allvalues),max(allvalues)],[min(allvalues),max(allvalues)]+offset,'k:'
 
 %alpha=1.5; beta=.5;
 %plot(alldatap,alpha*alldatap./alldataMu + alldatap*beta,'o');
+%}
 
 %{
 yDataToFit = alldatap;
