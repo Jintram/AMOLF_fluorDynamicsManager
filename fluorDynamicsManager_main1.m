@@ -4,6 +4,9 @@
 % see 
 % \\storage01\data\AMOLF\users\wehrens\ZZ_EXPERIMENTAL_DATA\MICROSCOPE_EXPERIMENTS_shortcuts\CRP_plasmid_data
 % also for a .docx file with a list of plasmid data.
+%
+% Optional parameters for this script:
+% - NOSAVEPLEASE
 
 OUTPUTFOLDER = 'U:\THESIS\Thesis\ChapterX_CRP\Figures\matlabExport\';
 
@@ -413,10 +416,12 @@ for plotTypeIdx = 1:numel(namesOfDataGathered)
         
         fileName = [GROUPNAME '_' plotType '_' parameterName];
         
-        saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
-        saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
-        saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
-        saveas(h1,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
+        if ~exist('NOSAVEPLEASE')
+            saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
+            saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+            saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
+            saveas(h1,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
+        end
         
     end
     
@@ -772,10 +777,12 @@ end
 
 fileName = [GROUPNAME '_overview_means'];
 
-saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
-saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
-saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
-saveas(h1,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
+if ~exist('NOSAVEPLEASE')
+    saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
+    saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+    saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
+    saveas(h1,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
+end
 
 %plotting CV
 %output.CV.(theFieldNames).meanCoefficientOfVariationLast10
@@ -1044,10 +1051,12 @@ for fluorIdx = 1:nrFluorColors
 
     fileName = [GROUPNAME '_overview_correlations_CmuPmu_' upper(fluorValues{fluorIdx})];
 
-    saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
-    saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
-    saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
-    saveas(h1,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
+    if ~exist('NOSAVEPLEASE')
+        saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
+        saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
+        saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+        saveas(h1,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
+    end
     
 end
 
@@ -1128,19 +1137,24 @@ for setIdx = 1:numel(set_fieldNames)
 end
 
 fileName = [GROUPNAME '_overview_autocorrelations'];%_' set_fieldNames{setIdx}{1} '_' upper(fluorValues{fluorIdx})];
-saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
-saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
-saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
-saveas(h1,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
+if ~exist('NOSAVEPLEASE')
+    saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
+    saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
+    saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+    saveas(h1,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
+end
 
 %% now make and save a separate legend
 legendHandle = legend(meanLineHandleCollection{1}, HUMANREADABLENAMESFORGROUPS);
 saveLegendToImage(h1, legendHandle, myAxes);
 fileName = [GROUPNAME '_overview_autocorrelations_legend'];
-saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
-saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
-saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
-saveas(h1,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
+
+if ~exist('NOSAVEPLEASE')
+    saveas(h1,[OUTPUTFOLDER 'tif_' fileName '.tif']);
+    saveas(h1,[OUTPUTFOLDER 'svg_' fileName '.svg']);
+    saveas(h1,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+    saveas(h1,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
+end
 
 %% Make scatter plots
 
@@ -1297,11 +1311,13 @@ for caseIdx = 1:numel(casesFieldNames)
         MW_makeplotlookbetter(10,[],[12.8/2, 19.2/3]/2,1);
 
         % Save the plots
-        fileName = [GROUPNAME '_scatters_' HUMANREADABLENAMESFORGROUPSpathString{groupIdx} '_' currentFieldNames{2} currentFluorLetters{2} '_' currentFieldNames{1} currentFluorLetters{1} ];%_' set_fieldNames{setIdx}{1} '_' upper(fluorValues{fluorIdx})];
-        saveas(hCurrent,[OUTPUTFOLDER 'tif_' fileName '.tif']);
-        saveas(hCurrent,[OUTPUTFOLDER 'svg_' fileName '.svg']);
-        saveas(hCurrent,[OUTPUTFOLDER 'fig_' fileName '.fig']);
-        saveas(hCurrent,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
+        if ~exist('NOSAVEPLEASE')
+            fileName = [GROUPNAME '_scatters_' HUMANREADABLENAMESFORGROUPSpathString{groupIdx} '_' currentFieldNames{2} currentFluorLetters{2} '_' currentFieldNames{1} currentFluorLetters{1} ];%_' set_fieldNames{setIdx}{1} '_' upper(fluorValues{fluorIdx})];        
+            saveas(hCurrent,[OUTPUTFOLDER 'tif_' fileName '.tif']);
+            saveas(hCurrent,[OUTPUTFOLDER 'svg_' fileName '.svg']);
+            saveas(hCurrent,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+            saveas(hCurrent,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
+        end
 
 
     end
@@ -1424,11 +1440,13 @@ for fluorIdx = 1:nrFluorColors
         MW_makeplotlookbetter(10,[],[12.8/2, 19.2/3]/2,1);
 
         % Save the plots
-        fileName = [GROUPNAME '_scatters_' HUMANREADABLENAMESFORGROUPSpathString{groupIdx} '_prod' currentFluorLetters{1} 'DivGrowth_vs_Concentration' currentFluorLetters{2} ];%_' set_fieldNames{setIdx}{1} '_' upper(fluorValues{fluorIdx})];
-        saveas(hCurrent,[OUTPUTFOLDER 'tif_' fileName '.tif']);
-        saveas(hCurrent,[OUTPUTFOLDER 'svg_' fileName '.svg']);
-        saveas(hCurrent,[OUTPUTFOLDER 'fig_' fileName '.fig']);
-        saveas(hCurrent,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
+        if ~exist('NOSAVEPLEASE')
+            fileName = [GROUPNAME '_scatters_' HUMANREADABLENAMESFORGROUPSpathString{groupIdx} '_prod' currentFluorLetters{1} 'DivGrowth_vs_Concentration' currentFluorLetters{2} ];%_' set_fieldNames{setIdx}{1} '_' upper(fluorValues{fluorIdx})];
+            saveas(hCurrent,[OUTPUTFOLDER 'tif_' fileName '.tif']);
+            saveas(hCurrent,[OUTPUTFOLDER 'svg_' fileName '.svg']);
+            saveas(hCurrent,[OUTPUTFOLDER 'fig_' fileName '.fig']);
+            saveas(hCurrent,[OUTPUTFOLDER 'pdf_' fileName '.pdf']);
+        end
 
 
     end
