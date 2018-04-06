@@ -1,14 +1,30 @@
 
 % Notes;
 %
-% see 
+% Set masterExcelFileLocation first (see below)
+%
+% see also
 % \\storage01\data\AMOLF\users\wehrens\ZZ_EXPERIMENTAL_DATA\MICROSCOPE_EXPERIMENTS_shortcuts\CRP_plasmid_data
 % also for a .docx file with a list of plasmid data.
 %
 % Optional parameters for this script:
 % - NOSAVEPLEASE
 
+% SET THIS PARAMETER:
+% 
+%{
+% CRP dataset
+masterExcelFileLocation = '\\storage01\data\AMOLF\users\wehrens\ZZ_EXPERIMENTAL_DATA\MICROSCOPE_OVERVIEW_AND_FIGURES\_projectfile_CRP.xlsx';
 OUTPUTFOLDER = 'U:\THESIS\Thesis\ChapterX_CRP\Figures\matlabExport\';
+%}
+%{
+% RIBOSOMAL DATA
+masterExcelFileLocation = '\\storage01\data\AMOLF\users\wehrens\ZZ_EXPERIMENTAL_DATA\MICROSCOPE_OVERVIEW_AND_FIGURES\_projectfile_Ribosomes.xlsx';
+OUTPUTFOLDER = '\\storage01\data\AMOLF\users\wehrens\THESIS\Thesis\ChapterX_Ribosomes\Figures\MatlabExport\CCs\';
+%}
+
+
+
 
 if ~exist('FIGURESVISIBLE','var')
     FIGURESVISIBLE='on'; % choose 'off' to not have figures visible
@@ -64,7 +80,9 @@ end
 
 %% Load Excel file to get information on directories
 
-masterExcelFileLocation = '\\storage01\data\AMOLF\users\wehrens\ZZ_EXPERIMENTAL_DATA\MICROSCOPE_OVERVIEW_AND_FIGURES\_projectfile_CRP.xlsx';
+if ~exist('masterExcelFileLocation','var')
+    error('masterExcelFileLocation was not set, set this parameter first');
+end
 
 [ndata, theTextData, allXLSdata] = xlsread(masterExcelFileLocation,'dataset_list','B16:E200')
 nrDataLines=size(allXLSdata,1);
@@ -76,11 +94,15 @@ disp('Excel file with overview of data loaded..');
 
 %% Execute any of these script before executing (the rest of) this script
 %{
+% FOR THE CRP datasets
 z_plotssets_plasmids1
 z_plotssets_plasmids2
 z_plotssets_chromoCRPs70_1
 z_plotssets_chromoCRPs70_prime
 z_plotssets_chromo_misc
+
+% FOR THE ribosome datasets
+z_plotssets_riboM9steady
 %}
 
 %%
